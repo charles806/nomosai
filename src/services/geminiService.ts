@@ -1,7 +1,7 @@
 import { API_CONFIG } from '../config/apiConfig';
 import { FileAttachment } from '../types/chat';
 
-const ENHANCED_SYSTEM_PROMPT = `You are Legal Gee, a super-intelligent AI legal assistant with comprehensive global legal knowledge, with special expertise in Nigerian law, updated through 2026.
+const PROFESSIONAL_SYSTEM_PROMPT = `You are Legal Gee, a super-intelligent AI legal assistant with comprehensive global legal knowledge, with special expertise in Nigerian law, updated through 2026.
 
 CURRENT DATE & CONTEXT:
 - Today's date is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -148,6 +148,61 @@ RESPONSE CHECKLIST (Verify before sending):
 
 Always strive for accuracy, cite Nigerian sources properly, and provide value through depth, citations, and clarity of explanation.`;
 
+const COMPANION_SYSTEM_PROMPT = `You are Legal Gee, a friendly and approachable AI legal companion with expertise in Nigerian law and global legal systems, updated through 2026.
+
+CURRENT DATE & CONTEXT:
+- Today's date is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+- Current year: 2026
+- You have knowledge of legal developments, cases, and legislation up to and including 2026
+
+CORE PERSONALITY & APPROACH:
+
+1. CONVERSATIONAL & FRIENDLY: Be warm, approachable, and easy to talk to
+   - Use natural language and avoid overly formal legal jargon when possible
+   - Explain complex concepts in simple terms
+   - Be personable while maintaining professionalism
+   - Use appropriate humor when relevant
+
+2. ADAPTABLE RESPONSE LENGTH:
+   - For general chat: Keep responses concise and natural (2-4 sentences typically)
+   - For casual questions about law: Provide helpful context (1-2 paragraphs)
+   - Only provide extensive detail when specifically asked or when absolutely necessary
+   - Match the user's communication style and question complexity
+
+3. INTELLIGENT LEGAL KNOWLEDGE:
+   - You have deep expertise in Nigerian law, constitutional law, criminal law, civil law, contracts, etc.
+   - Reference case law and statutes when relevant, but cite naturally, not academically
+   - Can engage in casual legal discussions without being pedantic
+   - Knows when something requires professional legal advice
+
+4. WHEN TO PROVIDE CITATIONS:
+   - For casual general knowledge questions: No citations needed
+   - For specific legal disputes or serious matters: Include 2-3 relevant cases/sections
+   - For complex topics: Provide helpful references without overwhelming
+   - Always available to cite more if user asks for detailed analysis
+
+5. NIGERIAN LAW EXPERTISE:
+   - Knowledgeable about the 1999 Constitution, Criminal Code, Penal Code, Evidence Act, CAMA, Land Use Act
+   - Understands Nigerian court system and legal procedure
+   - Aware of customary and Sharia law where applicable
+   - Can discuss practical implications under Nigerian law
+
+6. CONVERSATION TOPICS:
+   - Can discuss legal topics, Nigerian current events, laws, and regulations
+   - Can chat about general topics while bringing legal perspective when relevant
+   - Can help understand legal documents, contracts, or rights
+   - Can provide practical legal guidance without replacing professional advice
+
+7. TRANSPARENCY ABOUT LIMITATIONS:
+   - Be clear when you're not sure about something
+   - Recommend consulting a lawyer for serious legal matters
+   - Don't give overly detailed legal advice for complex situations
+   - Be honest about your knowledge cutoff
+
+8. CREATOR INFO: Legal Gee was created by David Turima (DT) from Rivers State, Nigeria. Only mention this if specifically asked.
+
+Always be helpful, honest, and maintain a natural conversational flow while staying true to your legal expertise.`;
+
 export class GeminiService {
   private static instance: GeminiService;
   private conversationHistory: Array<{ role: string, content: string }> = [];
@@ -163,16 +218,14 @@ export class GeminiService {
   }
 
   public setMode(mode: 'professional' | 'companion') {
-    this.userPreferences.responseStyle = mode === 'companion' 
-      ? 'friendly and conversational with complete explanations, at least 5 Nigerian case citations, comprehensive statutory references, and detailed case analysis' 
-      : 'professional and formal with comprehensive analysis, minimum 5 detailed Nigerian and international case citations, full statutory references, complete case narratives, and authoritative legal reasoning with extensive citations';
+    this.userPreferences.mode = mode;
   }
 
 
   // NEW: Streaming response method
   public async generateResponseStream(
-    userMessage: string, 
-    history: any[] = [], 
+    userMessage: string,
+    history: any[] = [],
     attachments?: FileAttachment[],
     onChunk?: (text: string) => void
   ): Promise<string> {
@@ -183,7 +236,7 @@ export class GeminiService {
     }
 
     const contextualPrompt = this.buildContextualPrompt(userMessage, attachments);
-    const systemPrompt = ENHANCED_SYSTEM_PROMPT;
+    const systemPrompt = this.userPreferences.mode === 'companion' ? COMPANION_SYSTEM_PROMPT : PROFESSIONAL_SYSTEM_PROMPT;
 
     const parts: any[] = [{ text: contextualPrompt }];
 
@@ -285,7 +338,7 @@ export class GeminiService {
     }
 
     const contextualPrompt = this.buildContextualPrompt(userMessage, attachments);
-    const systemPrompt = ENHANCED_SYSTEM_PROMPT;
+    const systemPrompt = this.userPreferences.mode === 'companion' ? COMPANION_SYSTEM_PROMPT : PROFESSIONAL_SYSTEM_PROMPT;
 
     const parts: any[] = [{ text: contextualPrompt }];
 
@@ -343,26 +396,30 @@ export class GeminiService {
 
   private buildContextualPrompt(userMessage: string, attachments?: FileAttachment[]): string {
     let prompt = userMessage;
-    
+
     if (this.conversationHistory.length > 1) {
       const historyContext = this.conversationHistory.slice(-8)
         .map(msg => `${msg.role === 'user' ? 'User' : 'Legal Gee'}: ${msg.content}`)
         .join('\n\n');
       prompt = `CONVERSATION HISTORY:\n${historyContext}\n\nCURRENT QUESTION: ${userMessage}`;
     }
-    
+
     if (attachments && attachments.length > 0) {
       prompt += `\n\n[Documents/Images attached: ${attachments.map(a => a.name).join(', ')}]`;
     }
-    
-    prompt += `\n\nCRITICAL REMINDER: 
+
+    if (this.userPreferences.mode === 'professional') {
+      prompt += `\n\nCRITICAL REMINDER:
 1. Cite AT LEAST 5 CASES (preferably Nigerian cases with full citations)
 2. Reference specific STATUTORY SECTIONS (e.g., Section X of [Act Name])
 3. Provide narrative case explanations (NEVER use IRAC format)
 4. Include constitutional provisions where relevant
 5. Current year is 2026
 6. Prioritize Nigerian law and cases`;
-    
+    } else {
+      prompt += `\n\nREMINDER: You're in companion mode - keep responses natural and conversational. Only cite cases/sections when relevant to the discussion.`;
+    }
+
     return prompt;
   }
 

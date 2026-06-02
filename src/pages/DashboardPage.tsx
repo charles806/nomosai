@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Scale, LogOut } from 'lucide-react';
+import { Scale } from 'lucide-react';
 import { ChatSidebar } from '../components/ChatSidebar';
 import { ChatMessages } from '../components/ChatMessages';
 import { ChatInput } from '../components/ChatInput';
@@ -16,7 +16,7 @@ export default function DashboardPage() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [aiMode, setAiMode] = useState<'professional' | 'companion'>('professional');
-    const { user, signOut } = useAuth();
+    const { signOut } = useAuth();
     const {
         canSendMessage,
         isFreeTrial,
@@ -47,10 +47,8 @@ export default function DashboardPage() {
         }
 
         sendMessage(message, attachments);
-        // Increment after sending
         await incrementMessageCount();
 
-        // Check if this was the last free message
         if (isFreeTrial && freeTrialRemaining <= 1) {
             setShowUpgrade(true);
         }
@@ -122,20 +120,11 @@ export default function DashboardPage() {
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            {/* Free trial badge */}
                             {isFreeTrial && (
                                 <span className="hidden sm:inline-flex items-center text-xs bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-full font-medium">
                                     {freeTrialRemaining} message{freeTrialRemaining !== 1 ? 's' : ''} left
                                 </span>
                             )}
-                            <p className="text-xs text-gray-400 hidden sm:block">{user?.email}</p>
-                            <button
-                                onClick={handleSignOut}
-                                className="p-2 hover:bg-gray-800 rounded-lg transition text-gray-400 hover:text-white"
-                                title="Sign out"
-                            >
-                                <LogOut className="h-5 w-5" />
-                            </button>
                         </div>
                     </div>
                 </div>
