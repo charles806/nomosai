@@ -42,14 +42,22 @@ FOR INSERT
 WITH CHECK (auth.uid() = id);
 
 -- Trigger to automatically create a profile when a new user signs up via Supabase Auth
-CREATE OR REPLACE FUNCTION public.handle_new_user() 
-RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
 BEGIN
   INSERT INTO public.user_profiles (id, email, message_count)
   VALUES (new.id, new.email, 0);
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
+
+-- Revoke execute permissions from public roles (only postgres should call this via trigger)
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.handle_new_user() TO postgres;
+GRANT EXECUTE ON FUNCTION public.handle_new_user() TO service_role;
 
 -- Bind the trigger to the auth.users table
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
