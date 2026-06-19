@@ -123,14 +123,30 @@ export default function PricingPage() {
                     border-bottom: 1.5px solid #c9a961;
                     border-right: 1.5px solid #c9a961;
                 }
+                .gold-gradient {
+                    background: linear-gradient(135deg, #e0bd7d 0%, #c9a961 45%, #9c7d3f 100%);
+                }
+                .orb {
+                    position: absolute;
+                    border-radius: 9999px;
+                    filter: blur(90px);
+                    pointer-events: none;
+                }
             `}</style>
+
+            {/* -- AMBIENT GRADIENT ORBS -- */}
+            <div className="relative">
+                <div className="orb w-[420px] h-[420px] -top-40 -right-32 bg-gradient-to-br from-[#c9a961]/25 via-[#c9a961]/10 to-transparent" />
+                <div className="orb w-[360px] h-[360px] top-[420px] -left-40 bg-gradient-to-tr from-[#4a5a8a]/20 via-[#2a3a6a]/10 to-transparent" />
+                <div className="orb w-[300px] h-[300px] bottom-0 right-1/4 bg-gradient-to-t from-[#c9a961]/15 to-transparent" />
+            </div>
 
             {/* -- HEADER -- */}
             <header className="sticky top-0 z-40 bg-[#0a0e1a]/90 backdrop-blur-lg border-b border-[#1a2030]">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                     <Link to="/" className="flex items-center gap-2.5 group">
-                        <div className="flex items-center justify-center h-8 w-8 rounded-md border border-[#c9a961]/40 bg-[#c9a961]/5 group-hover:border-[#c9a961] transition-colors">
-                            <Scale className="h-4 w-4 text-[#c9a961]" />
+                        <div className="relative flex items-center justify-center h-9 w-9 rounded-full gold-gradient shadow-lg shadow-[#c9a961]/20 group-hover:shadow-[#c9a961]/40 transition-shadow">
+                            <Scale className="h-4.5 w-4.5 text-[#0a0e1a]" strokeWidth={2} />
                         </div>
                         <span className="text-lg font-serif font-semibold tracking-wide">NOMOS AI</span>
                     </Link>
@@ -145,7 +161,7 @@ export default function PricingPage() {
             </header>
 
             {/* -- MAIN -- */}
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+            <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
                 {/* Title */}
                 <div ref={titleRef} className="reveal text-center mb-14">
                     <div className="inline-flex items-center gap-2 text-[#c9a961] text-xs font-semibold tracking-[0.2em] uppercase mb-6">
@@ -172,7 +188,7 @@ export default function PricingPage() {
                         aria-label="Toggle billing period"
                     >
                         <div
-                            className={`absolute top-0.5 w-6 h-6 rounded-full bg-[#c9a961] transition-all duration-300 ${
+                            className={`absolute top-0.5 w-6 h-6 rounded-full gold-gradient shadow-md shadow-[#c9a961]/30 transition-all duration-300 ${
                                 isYearly ? 'left-[calc(100%-1.625rem)]' : 'left-0.5'
                             }`}
                         />
@@ -181,14 +197,14 @@ export default function PricingPage() {
                         Yearly
                     </span>
                     {isYearly && (
-                        <span className="text-xs text-[#c9a961] border border-[#c9a961]/30 bg-[#c9a961]/5 px-2.5 py-1 rounded-sm font-medium tracking-wide">
+                        <span className="text-xs text-[#0a0e1a] gold-gradient px-3 py-1 rounded-full font-semibold tracking-wide shadow-md shadow-[#c9a961]/25">
                             Save up to 18%
                         </span>
                     )}
                 </div>
 
                 {/* Plan cards */}
-                <div ref={cardsRef} className="reveal grid md:grid-cols-3 gap-px bg-[#1a2030] border border-[#1a2030]">
+                <div ref={cardsRef} className="reveal grid md:grid-cols-3 gap-6">
                     {plans.map((plan) => {
                         const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
                         const period = isYearly ? '/year' : '/month';
@@ -196,16 +212,16 @@ export default function PricingPage() {
                         return (
                             <div
                                 key={plan.id}
-                                className={`relative flex flex-col p-8 lg:p-9 transition-colors duration-300 ${
+                                className={`relative flex flex-col p-8 lg:p-9 rounded-3xl transition-all duration-300 ${
                                     plan.popular
-                                        ? 'seal-corner bg-[#0f1420]'
-                                        : 'bg-[#0a0e1a] hover:bg-[#0f1420]'
+                                        ? 'bg-gradient-to-b from-[#1a2030] to-[#0f1420] border border-[#c9a961]/40 shadow-2xl shadow-[#c9a961]/10 md:scale-105'
+                                        : 'bg-[#0f1420]/60 border border-[#1a2030] hover:border-[#2a3142] hover:-translate-y-1'
                                 }`}
                             >
                                 {plan.popular && (
-                                    <p className="text-[10px] tracking-[0.25em] uppercase text-[#c9a961] mb-5">
+                                    <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 gold-gradient text-[#0a0e1a] text-xs font-bold px-4 py-1.5 rounded-full shadow-lg shadow-[#c9a961]/30 tracking-wide">
                                         Most Chosen
-                                    </p>
+                                    </span>
                                 )}
 
                                 <p className="text-[#c9a961]/70 font-serif text-sm mb-5">{plan.mark}</p>
@@ -228,7 +244,9 @@ export default function PricingPage() {
                                 <ul className="space-y-3 mb-9 flex-1">
                                     {plan.features.map((feat) => (
                                         <li key={feat} className="flex items-start gap-2.5 text-sm text-[#8b92a8] leading-relaxed">
-                                            <Check className="h-4 w-4 text-[#c9a961] flex-shrink-0 mt-0.5" strokeWidth={1.75} />
+                                            <span className="flex items-center justify-center h-4.5 w-4.5 rounded-full bg-[#c9a961]/15 flex-shrink-0 mt-0.5">
+                                                <Check className="h-3 w-3 text-[#c9a961]" strokeWidth={2.5} />
+                                            </span>
                                             {feat}
                                         </li>
                                     ))}
@@ -237,10 +255,10 @@ export default function PricingPage() {
                                 {/* CTA */}
                                 <button
                                     onClick={() => handleChoose(plan.id)}
-                                    className={`w-full font-medium py-3 rounded transition-all duration-200 ${
+                                    className={`w-full font-semibold py-3.5 rounded-full transition-all duration-200 hover:scale-[1.02] ${
                                         plan.popular
-                                            ? 'bg-[#c9a961] hover:bg-[#d8ba78] text-[#0a0e1a]'
-                                            : 'border border-[#2a3142] hover:border-[#8b92a8] text-[#e8e6e0]'
+                                            ? 'gold-gradient text-[#0a0e1a] shadow-lg shadow-[#c9a961]/25 hover:shadow-xl hover:shadow-[#c9a961]/35'
+                                            : 'border border-[#2a3142] hover:border-[#c9a961]/60 text-[#e8e6e0]'
                                     }`}
                                 >
                                     Choose {plan.name}
