@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Copy, Check, Search, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import rehypeRaw from 'rehype-raw';
 import { Message } from '../types/chat';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -25,17 +24,17 @@ const parseAndStyleLegalText = (text: string): string => {
   const examplePattern = /\b(For example|For instance|Example|Instance|Illustration|Case in point|Namely|Such as|Including|e\.g\.|i\.e\.)\b/gi;
 
   let styledText = text;
-  styledText = styledText.replace(headingPattern, (match) => match.replace(/(#{1,6}\s+)(.+)/, '$1<span style="color: #ffffff; font-weight: 700;">$2</span>'));
-  styledText = styledText.replace(colonHeadingPattern, (match) => `<span style="color: #ffffff; font-weight: 700;">${match}</span>`);
-  styledText = styledText.replace(titleCasePattern, (match) => `<span style="color: #ffffff; font-weight: 700;">${match}</span>`);
-  styledText = styledText.replace(casePattern, (match) => `<span style="color: #ffffff; font-weight: 600;">${match}</span>`);
-  styledText = styledText.replace(sectionPattern, (match) => `<span style="color: #ffffff; font-weight: 600;">${match}</span>`);
-  styledText = styledText.replace(constitutionPattern, (match) => `<span style="color: #ffffff; font-weight: 600;">${match}</span>`);
-  styledText = styledText.replace(actPattern, (match) => `<span style="color: #ffffff; font-weight: 600;">${match}</span>`);
-  styledText = styledText.replace(recognizedLawPattern, (match) => `<span style="color: #ffffff; font-weight: 600;">${match}</span>`);
-  styledText = styledText.replace(maximPattern, (match) => `<span style="color: #ffffff; font-style: italic; font-weight: 500;">${match}</span>`);
-  styledText = styledText.replace(examplePattern, (match) => `<span style="color: #ffffff; font-weight: 600;">${match}</span>`);
-  styledText = styledText.replace(legalTermsPattern, (match) => `<span style="color: #ffffff; font-weight: 500;">${match}</span>`);
+  styledText = styledText.replace(headingPattern, (match) => match.replace(/(#{1,6}\s+)(.+)/, '$1<span style="color: #2563eb; font-weight: 700;">$2</span>'));
+  styledText = styledText.replace(colonHeadingPattern, (match) => `<span style="color: #2563eb; font-weight: 700;">${match}</span>`);
+  styledText = styledText.replace(titleCasePattern, (match) => `<span style="color: #2563eb; font-weight: 700;">${match}</span>`);
+  styledText = styledText.replace(casePattern, (match) => `<span style="color: #2563eb; font-weight: 600;">${match}</span>`);
+  styledText = styledText.replace(sectionPattern, (match) => `<span style="color: #2563eb; font-weight: 600;">${match}</span>`);
+  styledText = styledText.replace(constitutionPattern, (match) => `<span style="color: #2563eb; font-weight: 600;">${match}</span>`);
+  styledText = styledText.replace(actPattern, (match) => `<span style="color: #2563eb; font-weight: 600;">${match}</span>`);
+  styledText = styledText.replace(recognizedLawPattern, (match) => `<span style="color: #2563eb; font-weight: 600;">${match}</span>`);
+  styledText = styledText.replace(maximPattern, (match) => `<span style="color: #2563eb; font-style: italic; font-weight: 500;">${match}</span>`);
+  styledText = styledText.replace(examplePattern, (match) => `<span style="color: #2563eb; font-weight: 600;">${match}</span>`);
+  styledText = styledText.replace(legalTermsPattern, (match) => `<span style="color: #2563eb; font-weight: 500;">${match}</span>`);
   return styledText;
 };
 
@@ -73,49 +72,6 @@ function UserAvatar({ name }: { name: string }) {
     </div>
   );
 }
-
-// Shared markdown component overrides — all text rendered pure white
-const markdownComponents = {
-  p: ({ ...props }) => (
-    <p style={{ marginBottom: '0.6rem', lineHeight: '1.7', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
-  ),
-  h1: ({ ...props }) => (
-    <h1 style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.3rem', marginTop: '0.75rem', marginBottom: '0.5rem' }} {...props} />
-  ),
-  h2: ({ ...props }) => (
-    <h2 style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.15rem', marginTop: '0.75rem', marginBottom: '0.5rem' }} {...props} />
-  ),
-  h3: ({ ...props }) => (
-    <h3 style={{ color: '#ffffff', fontWeight: 600, fontSize: '1.05rem', marginTop: '0.5rem', marginBottom: '0.5rem' }} {...props} />
-  ),
-  ul: ({ ...props }) => (
-    <ul style={{ marginBottom: '0.6rem', marginTop: '0.25rem', paddingLeft: '1.25rem', color: '#ffffff' }} {...props} />
-  ),
-  ol: ({ ...props }) => (
-    <ol style={{ marginBottom: '0.6rem', marginTop: '0.25rem', paddingLeft: '1.25rem', color: '#ffffff' }} {...props} />
-  ),
-  li: ({ ...props }) => (
-    <li style={{ marginBottom: '0.3rem', lineHeight: '1.65', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
-  ),
-  strong: ({ ...props }) => (
-    <strong style={{ color: '#ffffff', fontWeight: 700 }} {...props} />
-  ),
-  em: ({ ...props }) => (
-    <em style={{ color: '#ffffff' }} {...props} />
-  ),
-  a: ({ ...props }) => (
-    <a style={{ color: '#60a5fa', textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer" {...props} />
-  ),
-  blockquote: ({ ...props }) => (
-    <blockquote style={{ borderLeft: '3px solid #4b5563', paddingLeft: '0.75rem', color: '#e5e7eb', margin: '0.5rem 0' }} {...props} />
-  ),
-  code: ({ ...props }) => (
-    <code style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', fontSize: '0.85em', color: '#ffffff' }} {...props} />
-  ),
-  pre: ({ ...props }) => (
-    <pre style={{ backgroundColor: 'rgba(0,0,0,0.35)', padding: '0.85rem', borderRadius: '0.5rem', overflow: 'auto', color: '#ffffff' }} {...props} />
-  ),
-};
 
 export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -199,55 +155,94 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
       )}
 
       {messages.length > 0 && (
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-8">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-6">
           {messages.map((message) => {
             const isUser = message.role === 'user';
             const displayContent = isUser ? message.content : parseAndStyleLegalText(message.content);
 
-            // USER MESSAGE: right-aligned bubble, no avatar, no label (ChatGPT style)
-            if (isUser) {
-              return (
-                <div key={message.id} className="flex justify-end">
-                  <div className="max-w-[85%] sm:max-w-[75%] rounded-3xl px-4 py-2.5 bg-gray-700/70">
-                    <div className="prose prose-sm max-w-none break-words prose-invert">
-                      <ReactMarkdown components={markdownComponents}>
+            return (
+              <div
+                key={message.id}
+                className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
+              >
+                {/* Avatar */}
+                {isUser ? (
+                  <UserAvatar name={getUserFirstName()} />
+                ) : (
+                  <NomosAvatar />
+                )}
+
+                {/* Message Content */}
+                <div className={`flex flex-col min-w-0 ${isUser ? 'items-end' : 'items-start'} flex-1 max-w-[85%] sm:max-w-[75%]`}>
+                  {/* Role Label */}
+                  <span className={`text-xs font-semibold mb-1.5 ${isUser ? 'text-gray-400' : 'text-blue-400'}`}>
+                    {isUser ? 'You' : 'NOMOS AI'}
+                  </span>
+
+                  {/* Message Bubble */}
+                  <div
+                    className={`w-full rounded-2xl px-4 py-3 ${
+                      isUser
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-800/80 border border-gray-700/50'
+                    }`}
+                  >
+                    <div className={`prose prose-sm max-w-none break-words ${isUser ? 'prose-invert' : 'prose-invert prose-gray'}`}>
+                      <ReactMarkdown
+                        components={{
+                          p: ({ ...props }) => (
+                            <p style={{ marginBottom: '0.5rem', lineHeight: '1.65', fontSize: '0.9rem' }} {...props} />
+                          ),
+                          h1: ({ ...props }) => (
+                            <h1 style={{ color: '#3b82f6', fontWeight: 600, fontSize: '1.25rem', marginTop: '0.75rem', marginBottom: '0.5rem' }} {...props} />
+                          ),
+                          h2: ({ ...props }) => (
+                            <h2 style={{ color: '#3b82f6', fontWeight: 600, fontSize: '1.1rem', marginTop: '0.75rem', marginBottom: '0.5rem' }} {...props} />
+                          ),
+                          h3: ({ ...props }) => (
+                            <h3 style={{ color: '#3b82f6', fontWeight: 600, fontSize: '1rem', marginTop: '0.5rem', marginBottom: '0.5rem' }} {...props} />
+                          ),
+                          ul: ({ ...props }) => (
+                            <ul style={{ marginBottom: '0.5rem', marginTop: '0.25rem', paddingLeft: '1.25rem' }} {...props} />
+                          ),
+                          ol: ({ ...props }) => (
+                            <ol style={{ marginBottom: '0.5rem', marginTop: '0.25rem', paddingLeft: '1.25rem' }} {...props} />
+                          ),
+                          li: ({ ...props }) => (
+                            <li style={{ marginBottom: '0.25rem', lineHeight: '1.6', fontSize: '0.875rem' }} {...props} />
+                          ),
+                          code: ({ ...props }) => (
+                            <code style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', fontSize: '0.85em' }} {...props} />
+                          ),
+                          pre: ({ ...props }) => (
+                            <pre style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '0.5rem', overflow: 'auto' }} {...props} />
+                          ),
+                        }}
+                      >
                         {displayContent}
                       </ReactMarkdown>
                     </div>
                   </div>
-                </div>
-              );
-            }
-
-            // ASSISTANT MESSAGE: left-aligned, full-width, no bubble, with avatar
-            return (
-              <div key={message.id} className="flex gap-3 sm:gap-4">
-                <NomosAvatar />
-
-                <div className="flex flex-col min-w-0 flex-1 max-w-full">
-                  <div className="prose prose-sm max-w-none break-words prose-invert">
-                    <ReactMarkdown components={markdownComponents} rehypePlugins={[rehypeRaw]}>
-                      {displayContent}
-                    </ReactMarkdown>
-                  </div>
 
                   {/* Copy Button */}
-                  <button
-                    onClick={() => handleCopy(message.content, message.id)}
-                    className="mt-2 flex items-center gap-1 px-2 py-1 -ml-2 text-xs text-gray-400 hover:text-white transition-colors rounded w-fit"
-                  >
-                    {copiedId === message.id ? (
-                      <>
-                        <Check className="h-3 w-3" />
-                        <span>Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
+                  {!isUser && (
+                    <button
+                      onClick={() => handleCopy(message.content, message.id)}
+                      className="mt-2 flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-300 transition-colors rounded"
+                    >
+                      {copiedId === message.id ? (
+                        <>
+                          <Check className="h-3 w-3" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3" />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -255,13 +250,13 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
 
           {/* Loading Indicator */}
           {isLoading && (
-            <div className="flex gap-3 sm:gap-4">
+            <div className="flex gap-3">
               <NomosAvatar />
-              <div className="flex items-center gap-3 py-2">
+              <div className="flex items-center gap-3 px-4 py-3 bg-gray-800/80 rounded-2xl border border-gray-700/50">
                 <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
                 <span className="text-gray-400 text-sm">Thinking...</span>
               </div>
