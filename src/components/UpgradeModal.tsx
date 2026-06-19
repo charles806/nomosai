@@ -26,92 +26,47 @@ export function UpgradeModal({ isOpen }: UpgradeModalProps) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap');
-                .font-serif { font-family: 'Source Serif 4', Georgia, serif; }
-                .font-sans { font-family: 'Inter', system-ui, sans-serif; }
-                .gold-gradient {
-                    background: linear-gradient(135deg, #e0bd7d 0%, #c9a961 45%, #9c7d3f 100%);
-                }
-                .seal-corner::before {
-                    content: '';
-                    position: absolute;
-                    top: 0; left: 0;
-                    width: 24px; height: 24px;
-                    border-top: 1.5px solid #c9a961;
-                    border-left: 1.5px solid #c9a961;
-                    border-top-left-radius: 1.5rem;
-                }
-                .seal-corner::after {
-                    content: '';
-                    position: absolute;
-                    bottom: 0; right: 0;
-                    width: 24px; height: 24px;
-                    border-bottom: 1.5px solid #c9a961;
-                    border-right: 1.5px solid #c9a961;
-                    border-bottom-right-radius: 1.5rem;
-                }
-                .orb {
-                    position: absolute;
-                    border-radius: 9999px;
-                    filter: blur(70px);
-                    pointer-events: none;
-                }
-            `}</style>
-
+        <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in">
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-[#05070d]/80 backdrop-blur-md" />
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
 
             {/* Modal */}
-            <div className="relative seal-corner bg-[#0f1420] border border-[#2a3142] rounded-3xl shadow-2xl shadow-black/50 max-w-md w-full p-8 sm:p-10 font-sans animate-scale-in overflow-hidden">
-                {/* Ambient gradient orb */}
-                <div className="orb w-64 h-64 -top-20 -right-20 bg-gradient-to-br from-[#c9a961]/25 via-[#c9a961]/10 to-transparent" />
-
-                <div className="relative">
-                    {/* Eyebrow */}
-                    <div className="flex items-center justify-center gap-2 text-[#c9a961] text-[11px] font-semibold tracking-[0.2em] uppercase mb-7">
-                        <span className="h-px w-6 bg-[#c9a961]/60" />
-                        Trial Complete
-                        <span className="h-px w-6 bg-[#c9a961]/60" />
+            <div className="relative bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8 animate-scale-in">
+                {/* Icon */}
+                <div className="flex justify-center mb-6">
+                    <div className="p-4 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-2xl border border-amber-500/30">
+                        <Lock className="h-8 w-8 text-amber-400" />
                     </div>
-
-                    {/* Icon */}
-                    <div className="flex justify-center mb-7">
-                        <div className="flex items-center justify-center h-16 w-16 rounded-full gold-gradient shadow-lg shadow-[#c9a961]/25">
-                            <Lock className="h-7 w-7 text-[#0a0e1a]" strokeWidth={1.75} />
-                        </div>
-                    </div>
-
-                    {/* Title */}
-                    <h2 className="font-serif text-2xl sm:text-[28px] font-semibold text-[#f2f0ea] text-center mb-3.5 leading-tight">
-                        Your free trial has ended
-                    </h2>
-
-                    {/* Message */}
-                    <p className="text-[#8b92a8] text-center text-[15px] mb-9 leading-relaxed">
-                        You've used all <span className="text-[#e8e6e0] font-medium">5 free messages</span>.
-                        Upgrade to a premium plan to keep working with NOMOS AI's legal intelligence.
-                    </p>
-
-                    {/* Upgrade Button */}
-                    <button
-                        onClick={handleUpgrade}
-                        className="w-full gold-gradient hover:brightness-110 text-[#0a0e1a] font-semibold py-3.5 rounded-full transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.02] shadow-lg shadow-[#c9a961]/25 hover:shadow-xl hover:shadow-[#c9a961]/35"
-                    >
-                        Upgrade Now
-                        <ArrowRight className="h-4.5 w-4.5" />
-                    </button>
-
-                    {/* Sign Out Link */}
-                    <button
-                        onClick={handleSignOut}
-                        className="w-full mt-4 text-[#5a6178] hover:text-[#8b92a8] text-sm font-medium py-2 transition-colors flex items-center justify-center gap-2"
-                    >
-                        <LogOut className="h-3.5 w-3.5" />
-                        Sign out instead
-                    </button>
                 </div>
+
+                {/* Title */}
+                <h2 className="text-2xl font-bold text-white text-center mb-3">
+                    Free Trial Ended
+                </h2>
+
+                {/* Message */}
+                <p className="text-gray-400 text-center mb-8 leading-relaxed">
+                    You've used all <span className="text-white font-semibold">5 free messages</span>.
+                    Upgrade to a premium plan to continue using NOMOS AI's AI-powered legal assistant.
+                </p>
+
+                {/* Upgrade Button */}
+                <button
+                    onClick={handleUpgrade}
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-semibold py-3.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/25"
+                >
+                    Upgrade Now
+                    <ArrowRight className="h-5 w-5" />
+                </button>
+
+                {/* Sign Out Link */}
+                <button
+                    onClick={handleSignOut}
+                    className="w-full mt-4 text-gray-500 hover:text-gray-300 text-sm font-medium py-2 transition-colors flex items-center justify-center gap-2"
+                >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out Instead
+                </button>
             </div>
         </div>
     );
