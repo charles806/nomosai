@@ -31,16 +31,16 @@ export function UpgradeModal({ isOpen }: UpgradeModalProps) {
                 @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap');
                 .font-serif { font-family: 'Source Serif 4', Georgia, serif; }
                 .font-sans { font-family: 'Inter', system-ui, sans-serif; }
-                .gold-gradient {
-                    background: linear-gradient(135deg, #e0bd7d 0%, #c9a961 45%, #9c7d3f 100%);
+                .blue-gradient {
+                    background: linear-gradient(135deg, #60a5fa 0%, #6366f1 50%, #2563eb 100%);
                 }
                 .seal-corner::before {
                     content: '';
                     position: absolute;
                     top: 0; left: 0;
                     width: 24px; height: 24px;
-                    border-top: 1.5px solid #c9a961;
-                    border-left: 1.5px solid #c9a961;
+                    border-top: 1.5px solid #3b82f6;
+                    border-left: 1.5px solid #3b82f6;
                     border-top-left-radius: 1.5rem;
                 }
                 .seal-corner::after {
@@ -48,8 +48,8 @@ export function UpgradeModal({ isOpen }: UpgradeModalProps) {
                     position: absolute;
                     bottom: 0; right: 0;
                     width: 24px; height: 24px;
-                    border-bottom: 1.5px solid #c9a961;
-                    border-right: 1.5px solid #c9a961;
+                    border-bottom: 1.5px solid #3b82f6;
+                    border-right: 1.5px solid #3b82f6;
                     border-bottom-right-radius: 1.5rem;
                 }
                 .orb {
@@ -65,21 +65,22 @@ export function UpgradeModal({ isOpen }: UpgradeModalProps) {
 
             {/* Modal */}
             <div className="relative seal-corner bg-[#0f1420] border border-[#2a3142] rounded-3xl shadow-2xl shadow-black/50 max-w-md w-full p-8 sm:p-10 font-sans animate-scale-in overflow-hidden">
-                {/* Ambient gradient orb */}
-                <div className="orb w-64 h-64 -top-20 -right-20 bg-gradient-to-br from-[#c9a961]/25 via-[#c9a961]/10 to-transparent" />
+                {/* Ambient gradient orbs */}
+                <div className="orb w-64 h-64 -top-20 -right-20 bg-gradient-to-br from-[#3b82f6]/25 via-[#3b82f6]/10 to-transparent" />
+                <div className="orb w-48 h-48 -bottom-16 -left-16 bg-gradient-to-tr from-[#7c3aed]/20 via-[#06b6d4]/10 to-transparent" />
 
                 <div className="relative">
                     {/* Eyebrow */}
-                    <div className="flex items-center justify-center gap-2 text-[#c9a961] text-[11px] font-semibold tracking-[0.2em] uppercase mb-7">
-                        <span className="h-px w-6 bg-[#c9a961]/60" />
+                    <div className="flex items-center justify-center gap-2 text-[#3b82f6] text-[11px] font-semibold tracking-[0.2em] uppercase mb-7">
+                        <span className="h-px w-6 bg-[#3b82f6]/60" />
                         Trial Complete
-                        <span className="h-px w-6 bg-[#c9a961]/60" />
+                        <span className="h-px w-6 bg-[#3b82f6]/60" />
                     </div>
 
                     {/* Icon */}
                     <div className="flex justify-center mb-7">
-                        <div className="flex items-center justify-center h-16 w-16 rounded-full gold-gradient shadow-lg shadow-[#c9a961]/25">
-                            <Lock className="h-7 w-7 text-[#0a0e1a]" strokeWidth={1.75} />
+                        <div className="flex items-center justify-center h-16 w-16 rounded-full blue-gradient shadow-lg shadow-[#3b82f6]/25">
+                            <Lock className="h-7 w-7 text-white" strokeWidth={1.75} />
                         </div>
                     </div>
 
@@ -97,7 +98,7 @@ export function UpgradeModal({ isOpen }: UpgradeModalProps) {
                     {/* Upgrade Button */}
                     <button
                         onClick={handleUpgrade}
-                        className="w-full gold-gradient hover:brightness-110 text-[#0a0e1a] font-semibold py-3.5 rounded-full transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.02] shadow-lg shadow-[#c9a961]/25 hover:shadow-xl hover:shadow-[#c9a961]/35"
+                        className="w-full blue-gradient hover:brightness-110 text-white font-semibold py-3.5 rounded-full transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.02] shadow-lg shadow-[#3b82f6]/25 hover:shadow-xl hover:shadow-[#3b82f6]/35"
                     >
                         Upgrade Now
                         <ArrowRight className="h-4.5 w-4.5" />
