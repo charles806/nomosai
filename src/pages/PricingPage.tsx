@@ -76,7 +76,7 @@ export default function PricingPage() {
                         <div className="p-1.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg group-hover:shadow-lg group-hover:shadow-blue-500/25 transition-shadow">
                             <Scale className="h-5 w-5 text-white" />
                         </div>
-                        <span className="text-lg font-bold">Legal Gee</span>
+                        <span className="text-lg font-bold">NOMOS AI</span>
                     </Link>
                     <Link
                         to="/"

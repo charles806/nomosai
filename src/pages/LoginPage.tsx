@@ -42,7 +42,7 @@ export default function LoginPage() {
                         Welcome Back
                     </h1>
                     <p className="text-gray-400 text-center mb-8">
-                        Sign in to your Legal Gee account
+                        Sign in to your NOMOS AI account
                     </p>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
@@ -129,7 +129,7 @@ export default function LoginPage() {
                 </div>
 
                 <p className="text-gray-500 text-xs text-center mt-6">
-                    Legal Gee • AI Legal Assistant
+                    NOMOS AI • Legal Intelligence
                 </p>
             </div>
         </div>

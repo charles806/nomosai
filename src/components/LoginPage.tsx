@@ -49,7 +49,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
           </div>
 
           <h1 className="text-3xl font-bold text-white text-center mb-2">
-            Legal Gee
+            NOMOS AI
           </h1>
           <p className="text-gray-400 text-center mb-8">
             {isSignUp ? 'Create your account' : 'Welcome back'}
@@ -142,7 +142,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         </div>
 
         <p className="text-gray-500 text-xs text-center mt-6">
-          Legal Gee • AI Legal Assistant
+          NOMOS AI • Legal Intelligence
         </p>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { API_CONFIG } from '../config/apiConfig';
 import { FileAttachment } from '../types/chat';
 
-const PROFESSIONAL_SYSTEM_PROMPT = `You are Legal Gee, a super-intelligent AI legal assistant with comprehensive global legal knowledge, with special expertise in Nigerian law, updated through 2026.
+const PROFESSIONAL_SYSTEM_PROMPT = `You are NOMOS AI, a super-intelligent AI legal assistant with comprehensive global legal knowledge, with special expertise in Nigerian law, updated through 2026.
 
 CURRENT DATE & CONTEXT:
 - Today's date is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -123,7 +123,7 @@ CORE INSTRUCTIONS:
    - Recommend when professional legal consultation is essential
    - Reference Nigerian legal practitioners and bodies (NBA, LPDC, etc.)
 
-10. CREATOR INFO: Legal Gee was created by David Turima (DT) from Rivers State, Nigeria. Only mention this if specifically asked who created you.
+10. CREATOR INFO: NOMOS AI was created by David Turima (DT) from Rivers State, Nigeria. Only mention this if specifically asked who created you.
 
 NIGERIAN LAW KNOWLEDGE BASE (Updated to 2026):
 - 1999 Constitution of Nigeria (as amended through 2026)
@@ -148,7 +148,7 @@ RESPONSE CHECKLIST (Verify before sending):
 
 Always strive for accuracy, cite Nigerian sources properly, and provide value through depth, citations, and clarity of explanation.`;
 
-const COMPANION_SYSTEM_PROMPT = `You are Legal Gee, a friendly and approachable AI legal companion with expertise in Nigerian law and global legal systems, updated through 2026.
+const COMPANION_SYSTEM_PROMPT = `You are NOMOS AI, a friendly and approachable AI legal companion with expertise in Nigerian law and global legal systems, updated through 2026.
 
 CURRENT DATE & CONTEXT:
 - Today's date is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -199,7 +199,7 @@ CORE PERSONALITY & APPROACH:
    - Don't give overly detailed legal advice for complex situations
    - Be honest about your knowledge cutoff
 
-8. CREATOR INFO: Legal Gee was created by David Turima (DT) from Rivers State, Nigeria. Only mention this if specifically asked.
+8. CREATOR INFO: NOMOS AI was created by David Turima (DT) from Rivers State, Nigeria. Only mention this if specifically asked.
 
 Always be helpful, honest, and maintain a natural conversational flow while staying true to your legal expertise.`;
 
@@ -399,7 +399,7 @@ export class GeminiService {
 
     if (this.conversationHistory.length > 1) {
       const historyContext = this.conversationHistory.slice(-8)
-        .map(msg => `${msg.role === 'user' ? 'User' : 'Legal Gee'}: ${msg.content}`)
+        .map(msg => `${msg.role === 'user' ? 'User' : 'NOMOS AI'}: ${msg.content}`)
         .join('\n\n');
       prompt = `CONVERSATION HISTORY:\n${historyContext}\n\nCURRENT QUESTION: ${userMessage}`;
     }

@@ -47,7 +47,7 @@ export function UpgradeModal({ isOpen }: UpgradeModalProps) {
                 {/* Message */}
                 <p className="text-gray-400 text-center mb-8 leading-relaxed">
                     You've used all <span className="text-white font-semibold">5 free messages</span>.
-                    Upgrade to a premium plan to continue using Legal Gee's AI-powered legal assistant.
+                    Upgrade to a premium plan to continue using NOMOS AI's AI-powered legal assistant.
                 </p>
 
                 {/* Upgrade Button */}

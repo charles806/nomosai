@@ -90,7 +90,7 @@ export function SettingsModal({ isOpen, onClose, mode, onModeChange }: SettingsM
           {/* Minimal Info Box */}
           <div className="p-3 bg-blue-500/[0.03] border border-blue-500/10 rounded-lg">
             <p className="text-[11px] text-gray-500 leading-normal">
-              <span className="text-blue-400 font-medium">Legal Gee AI</span> provides multi-jurisdictional insights and remembers conversation context for accuracy.
+              <span className="text-blue-400 font-medium">NOMOS AI</span> provides multi-jurisdictional insights and remembers conversation context for accuracy.
             </p>
           </div>
         </div>

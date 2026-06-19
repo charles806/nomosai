@@ -229,7 +229,7 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
           {isLoading && (
             <div className="flex gap-3 items-center text-gray-400 animate-pulse">
               <Bot className="h-5 w-5" />
-              <span className="text-xs">Legal Gee is thinking...</span>
+              <span className="text-xs">NOMOS AI is thinking...</span>
             </div>
           )}
           <div ref={messagesEndRef} />

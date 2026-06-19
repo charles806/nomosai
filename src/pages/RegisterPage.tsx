@@ -168,7 +168,7 @@ export default function RegisterPage() {
                 </div>
 
                 <p className="text-gray-500 text-xs text-center mt-6">
-                    Legal Gee • AI Legal Assistant
+                    NOMOS AI • Legal Intelligence
                 </p>
             </div>
         </div>

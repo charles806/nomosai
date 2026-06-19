@@ -73,7 +73,7 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex">
+        <div className="h-screen-stable bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex overflow-hidden">
             {/* Desktop Sidebar */}
             <div className="hidden lg:block">
                 <ChatSidebar
@@ -111,7 +111,7 @@ export default function DashboardPage() {
                                 <Scale className="h-5 w-5 text-white" />
                             </div>
                             <div>
-                                <h1 className="text-lg font-bold text-white">Legal Gee</h1>
+                                <h1 className="text-lg font-bold text-white">NOMOS AI</h1>
                                 <p className="text-xs text-gray-400">
                                     {aiMode === 'professional'
                                         ? 'Super Intelligent Global Legal Assistant'

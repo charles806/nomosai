@@ -73,7 +73,7 @@ export function ChatInput({ onSendMessage, isLoading, placeholder }: ChatInputPr
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder || "Ask legal gee"}
+            placeholder={placeholder || "Ask NOMOS AI"}
             className="flex-1 bg-transparent text-[#ececec] placeholder-gray-500 py-2 outline-none resize-none text-base max-h-32"
           />
 
