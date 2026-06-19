@@ -66,6 +66,15 @@ export default function RegisterPage() {
                     border-bottom: 1.5px solid #c9a961;
                     border-right: 1.5px solid #c9a961;
                 }
+                .gold-gradient {
+                    background: linear-gradient(135deg, #e0bd7d 0%, #c9a961 45%, #9c7d3f 100%);
+                }
+                .orb {
+                    position: absolute;
+                    border-radius: 9999px;
+                    filter: blur(90px);
+                    pointer-events: none;
+                }
                 .fade-up { opacity: 0; transform: translateY(14px); animation: fadeUp 0.6s ease forwards; }
                 @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
                 @media (prefers-reduced-motion: reduce) {
@@ -73,12 +82,16 @@ export default function RegisterPage() {
                 }
             `}</style>
 
-            <div className="w-full max-w-md fade-up">
-                <div className="relative seal-corner border border-[#2a3142] bg-[#0f1420] rounded-sm p-8 sm:p-10">
+            {/* -- AMBIENT GRADIENT ORBS -- */}
+            <div className="orb w-[420px] h-[420px] -top-32 -right-24 bg-gradient-to-br from-[#c9a961]/25 via-[#c9a961]/10 to-transparent" />
+            <div className="orb w-[360px] h-[360px] -bottom-32 -left-24 bg-gradient-to-tr from-[#4a5a8a]/20 via-[#2a3a6a]/10 to-transparent" />
+
+            <div className="relative w-full max-w-md fade-up">
+                <div className="relative seal-corner border border-[#2a3142] bg-[#0f1420]/90 backdrop-blur-sm rounded-3xl p-8 sm:p-10 shadow-2xl shadow-black/40">
                     {/* Logo */}
                     <Link to="/" className="flex items-center justify-center gap-2.5 mb-8">
-                        <div className="flex items-center justify-center h-9 w-9 rounded-md border border-[#c9a961]/40 bg-[#c9a961]/5">
-                            <Scale className="h-4.5 w-4.5 text-[#c9a961]" />
+                        <div className="flex items-center justify-center h-10 w-10 rounded-full gold-gradient shadow-lg shadow-[#c9a961]/25">
+                            <Scale className="h-5 w-5 text-[#0a0e1a]" strokeWidth={2} />
                         </div>
                         <span className="text-lg font-serif font-semibold tracking-wide">NOMOS AI</span>
                     </Link>
@@ -108,7 +121,7 @@ export default function RegisterPage() {
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="you@example.com"
                                 required
-                                className="w-full bg-[#0a0e1a] border border-[#2a3142] rounded px-4 py-3 text-[#e8e6e0] placeholder-[#5a6178] focus:outline-none focus:border-[#c9a961] transition-colors"
+                                className="w-full bg-[#0a0e1a] border border-[#2a3142] rounded-xl px-4 py-3 text-[#e8e6e0] placeholder-[#5a6178] focus:outline-none focus:border-[#c9a961] focus:ring-1 focus:ring-[#c9a961]/40 transition-colors"
                             />
                         </div>
 
@@ -126,7 +139,7 @@ export default function RegisterPage() {
                                     placeholder="••••••••"
                                     required
                                     minLength={6}
-                                    className="w-full bg-[#0a0e1a] border border-[#2a3142] rounded px-4 py-3 text-[#e8e6e0] placeholder-[#5a6178] focus:outline-none focus:border-[#c9a961] transition-colors"
+                                    className="w-full bg-[#0a0e1a] border border-[#2a3142] rounded-xl px-4 py-3 text-[#e8e6e0] placeholder-[#5a6178] focus:outline-none focus:border-[#c9a961] focus:ring-1 focus:ring-[#c9a961]/40 transition-colors"
                                 />
                                 <button
                                     type="button"
@@ -153,13 +166,13 @@ export default function RegisterPage() {
                                 placeholder="••••••••"
                                 required
                                 minLength={6}
-                                className="w-full bg-[#0a0e1a] border border-[#2a3142] rounded px-4 py-3 text-[#e8e6e0] placeholder-[#5a6178] focus:outline-none focus:border-[#c9a961] transition-colors"
+                                className="w-full bg-[#0a0e1a] border border-[#2a3142] rounded-xl px-4 py-3 text-[#e8e6e0] placeholder-[#5a6178] focus:outline-none focus:border-[#c9a961] focus:ring-1 focus:ring-[#c9a961]/40 transition-colors"
                             />
                         </div>
 
                         {/* Error */}
                         {error && (
-                            <div className="flex items-center gap-2.5 bg-[#c9a961]/5 border border-red-500/30 rounded p-3">
+                            <div className="flex items-center gap-2.5 bg-[#c9a961]/5 border border-red-500/30 rounded-xl p-3">
                                 <AlertCircle size={17} className="text-red-400 flex-shrink-0" />
                                 <p className="text-sm text-red-300">{error}</p>
                             </div>
@@ -170,7 +183,7 @@ export default function RegisterPage() {
                             id="register-submit"
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-[#c9a961] hover:bg-[#d8ba78] disabled:opacity-50 text-[#0a0e1a] font-semibold py-3 rounded transition-colors duration-200 flex items-center justify-center gap-2.5"
+                            className="w-full gold-gradient hover:brightness-110 disabled:opacity-50 text-[#0a0e1a] font-semibold py-3.5 rounded-full transition-all duration-200 flex items-center justify-center gap-2.5 shadow-lg shadow-[#c9a961]/25 hover:shadow-xl hover:shadow-[#c9a961]/35 hover:scale-[1.02]"
                         >
                             {isLoading ? (
                                 <>
