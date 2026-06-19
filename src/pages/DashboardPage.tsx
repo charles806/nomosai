@@ -7,6 +7,7 @@ import { ErrorMessage } from '../components/ErrorMessage';
 import { MobileMenu } from '../components/MobileMenu';
 import { SettingsModal } from '../components/SettingsModal';
 import { UpgradeModal } from '../components/UpgradeModal';
+import { BadgeNotification } from '../components/BadgeNotification';
 import { useChat } from '../hooks/useChat';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../hooks/useSubscription';
@@ -22,6 +23,8 @@ export default function DashboardPage() {
         isFreeTrial,
         freeTrialRemaining,
         incrementMessageCount,
+        newBadge,
+        clearNewBadge,
     } = useSubscription();
 
     const {
@@ -149,6 +152,7 @@ export default function DashboardPage() {
                 <ChatMessages
                     messages={currentConversation?.messages || []}
                     isLoading={isLoading}
+                    onPromptSelect={(prompt) => handleSendMessage(prompt)}
                 />
 
                 {/* Input */}
@@ -173,6 +177,9 @@ export default function DashboardPage() {
 
             {/* Upgrade Modal */}
             <UpgradeModal isOpen={showUpgrade} />
+
+            {/* Badge Notification */}
+            <BadgeNotification badge={newBadge} onClose={clearNewBadge} />
         </div>
     );
 }
