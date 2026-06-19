@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Gavel, Bot, Copy, Check, Search, FileText } from 'lucide-react';
+import { Copy, Check, Search, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Message } from '../types/chat';
 import { useAuth } from '../contexts/AuthContext';
@@ -53,13 +53,35 @@ const PROMPT_CARDS = [
   },
 ];
 
+// Unique NOMOS AI Avatar Component
+function NomosAvatar() {
+  return (
+    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 flex items-center justify-center shadow-lg shadow-blue-500/30 relative overflow-hidden flex-shrink-0">
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-white/10 rounded-full" />
+      <span className="text-white font-bold text-sm relative z-10 tracking-tight" style={{ fontFamily: 'ui-monospace, monospace' }}>N</span>
+    </div>
+  );
+}
+
+// User Avatar Component
+function UserAvatar({ name }: { name: string }) {
+  const initial = name?.charAt(0).toUpperCase() || 'U';
+  return (
+    <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+      <span className="text-white font-medium text-sm">{initial}</span>
+    </div>
+  );
+}
+
 export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, isLoading]);
 
   const handleCopy = async (text: string, messageId: string) => {
@@ -72,7 +94,6 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
     }
   };
 
-  // Extract first name from email or display name
   const getUserFirstName = () => {
     if (!user) return 'there';
     if (user.user_metadata?.full_name) {
@@ -85,22 +106,14 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-transparent">
+    <div className="flex-1 overflow-y-auto scrollbar-thin">
       {messages.length === 0 && !isLoading && (
-        <div
-          className="h-full flex flex-col items-center justify-center px-6"
-          style={{
-            background: 'linear-gradient(160deg, #0f1b2d 0%, #1a2a4a 50%, #0d1f3c 100%)',
-          }}
-        >
-          {/* Welcome heading */}
-          <h1 className="text-3xl font-bold text-white mb-10 text-center">
-            welcome back{' '}
-            <span className="text-white">{getUserFirstName()}</span>
+        <div className="h-full flex flex-col items-center justify-center px-4 sm:px-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-8 text-center">
+            Welcome back, <span className="text-blue-400">{getUserFirstName()}</span>
           </h1>
 
-          {/* Floating prompt cards */}
-          <div className="relative w-full max-w-sm h-64 mb-8">
+          <div className="relative w-full max-w-sm h-56 sm:h-64">
             {PROMPT_CARDS.map((card, index) => {
               const rotations = [-8, 4, -4];
               const tops = ['0%', '20%', '42%'];
@@ -141,62 +154,69 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
         </div>
       )}
 
-      {/* Messages */}
       {messages.length > 0 && (
-        <div className="p-6 space-y-4">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-6">
           {messages.map((message) => {
-            const displayContent =
-              message.role === 'assistant'
-                ? parseAndStyleLegalText(message.content)
-                : message.content;
+            const isUser = message.role === 'user';
+            const displayContent = isUser ? message.content : parseAndStyleLegalText(message.content);
 
             return (
               <div
                 key={message.id}
-                className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
               >
-                <div
-                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                    message.role === 'user'
-                      ? 'bg-blue-600'
-                      : 'bg-gradient-to-br from-purple-600 to-blue-600'
-                  }`}
-                >
-                  {message.role === 'user' ? (
-                    <Gavel className="h-5 w-5 text-white" />
-                  ) : (
-                    <Bot className="h-5 w-5 text-white" />
-                  )}
-                </div>
+                {/* Avatar */}
+                {isUser ? (
+                  <UserAvatar name={getUserFirstName()} />
+                ) : (
+                  <NomosAvatar />
+                )}
 
-                <div
-                  className={`flex flex-col flex-1 max-w-[80%] ${
-                    message.role === 'user' ? 'items-end' : 'items-start'
-                  }`}
-                >
+                {/* Message Content */}
+                <div className={`flex flex-col min-w-0 ${isUser ? 'items-end' : 'items-start'} flex-1 max-w-[85%] sm:max-w-[75%]`}>
+                  {/* Role Label */}
+                  <span className={`text-xs font-semibold mb-1.5 ${isUser ? 'text-gray-400' : 'text-blue-400'}`}>
+                    {isUser ? 'You' : 'NOMOS AI'}
+                  </span>
+
+                  {/* Message Bubble */}
                   <div
-                    className={`w-full ${
-                      message.role === 'user' ? 'text-right' : 'text-left'
+                    className={`w-full rounded-2xl px-4 py-3 ${
+                      isUser
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-800/80 border border-gray-700/50'
                     }`}
                   >
-                    <div
-                      className={`prose prose-invert prose-sm max-w-none ${
-                        message.role === 'user' ? 'text-gray-200' : 'text-gray-100'
-                      }`}
-                    >
+                    <div className={`prose prose-sm max-w-none break-words ${isUser ? 'prose-invert' : 'prose-invert prose-gray'}`}>
                       <ReactMarkdown
                         components={{
-                          span: ({ node, ...props }) => <span {...props} />,
-                          h1: ({ node, ...props }) => <h1 style={{ color: '#3b82f6', fontWeight: 600, fontSize: '1.25rem', marginTop: '0.5rem', marginBottom: '0.5rem' }} {...props} />,
-                          h2: ({ node, ...props }) => <h2 style={{ color: '#3b82f6', fontWeight: 600, fontSize: '1.125rem', marginTop: '0.5rem', marginBottom: '0.5rem' }} {...props} />,
-                          h3: ({ node, ...props }) => <h3 style={{ color: '#3b82f6', fontWeight: 600, fontSize: '1rem', marginTop: '0.5rem', marginBottom: '0.5rem' }} {...props} />,
-                          h4: ({ node, ...props }) => <h4 style={{ color: '#3b82f6', fontWeight: 600, fontSize: '0.95rem', marginTop: '0.5rem', marginBottom: '0.5rem' }} {...props} />,
-                          h5: ({ node, ...props }) => <h5 style={{ color: '#3b82f6', fontWeight: 600, fontSize: '0.9rem', marginTop: '0.5rem', marginBottom: '0.5rem' }} {...props} />,
-                          h6: ({ node, ...props }) => <h6 style={{ color: '#3b82f6', fontWeight: 600, fontSize: '0.875rem', marginTop: '0.5rem', marginBottom: '0.5rem' }} {...props} />,
-                          p: ({ node, ...props }) => <p style={{ marginBottom: '0.5rem', lineHeight: '1.6', fontSize: '0.9rem' }} {...props} />,
-                          ul: ({ node, ...props }) => <ul style={{ marginBottom: '0.5rem', marginTop: '0.25rem', paddingLeft: '1.5rem' }} {...props} />,
-                          ol: ({ node, ...props }) => <ol style={{ marginBottom: '0.5rem', marginTop: '0.25rem', paddingLeft: '1.5rem' }} {...props} />,
-                          li: ({ node, ...props }) => <li style={{ marginBottom: '0.25rem', lineHeight: '1.6', fontSize: '0.9rem' }} {...props} />,
+                          p: ({ ...props }) => (
+                            <p style={{ marginBottom: '0.5rem', lineHeight: '1.65', fontSize: '0.9rem' }} {...props} />
+                          ),
+                          h1: ({ ...props }) => (
+                            <h1 style={{ color: '#3b82f6', fontWeight: 600, fontSize: '1.25rem', marginTop: '0.75rem', marginBottom: '0.5rem' }} {...props} />
+                          ),
+                          h2: ({ ...props }) => (
+                            <h2 style={{ color: '#3b82f6', fontWeight: 600, fontSize: '1.1rem', marginTop: '0.75rem', marginBottom: '0.5rem' }} {...props} />
+                          ),
+                          h3: ({ ...props }) => (
+                            <h3 style={{ color: '#3b82f6', fontWeight: 600, fontSize: '1rem', marginTop: '0.5rem', marginBottom: '0.5rem' }} {...props} />
+                          ),
+                          ul: ({ ...props }) => (
+                            <ul style={{ marginBottom: '0.5rem', marginTop: '0.25rem', paddingLeft: '1.25rem' }} {...props} />
+                          ),
+                          ol: ({ ...props }) => (
+                            <ol style={{ marginBottom: '0.5rem', marginTop: '0.25rem', paddingLeft: '1.25rem' }} {...props} />
+                          ),
+                          li: ({ ...props }) => (
+                            <li style={{ marginBottom: '0.25rem', lineHeight: '1.6', fontSize: '0.875rem' }} {...props} />
+                          ),
+                          code: ({ ...props }) => (
+                            <code style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', fontSize: '0.85em' }} {...props} />
+                          ),
+                          pre: ({ ...props }) => (
+                            <pre style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '0.5rem', overflow: 'auto' }} {...props} />
+                          ),
                         }}
                       >
                         {displayContent}
@@ -204,34 +224,45 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handleCopy(message.content, message.id)}
-                    className="mt-1 flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-gray-200 transition-colors rounded-md hover:bg-gray-800"
-                    title="Copy to clipboard"
-                  >
-                    {copiedId === message.id ? (
-                      <>
-                        <Check className="h-3 w-3" />
-                        <span>Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
+                  {/* Copy Button */}
+                  {!isUser && (
+                    <button
+                      onClick={() => handleCopy(message.content, message.id)}
+                      className="mt-2 flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-300 transition-colors rounded"
+                    >
+                      {copiedId === message.id ? (
+                        <>
+                          <Check className="h-3 w-3" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3" />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             );
           })}
 
+          {/* Loading Indicator */}
           {isLoading && (
-            <div className="flex gap-3 items-center text-gray-400 animate-pulse">
-              <Bot className="h-5 w-5" />
-              <span className="text-xs">NOMOS AI is thinking...</span>
+            <div className="flex gap-3">
+              <NomosAvatar />
+              <div className="flex items-center gap-3 px-4 py-3 bg-gray-800/80 rounded-2xl border border-gray-700/50">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+                <span className="text-gray-400 text-sm">Thinking...</span>
+              </div>
             </div>
           )}
+
           <div ref={messagesEndRef} />
         </div>
       )}

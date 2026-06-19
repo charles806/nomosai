@@ -73,7 +73,7 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="h-screen-stable bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex overflow-hidden">
+        <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex overflow-hidden">
             {/* Desktop Sidebar */}
             <div className="hidden lg:block">
                 <ChatSidebar
@@ -101,28 +101,36 @@ export default function DashboardPage() {
             />
 
             {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col min-w-0">
-                {/* Header */}
-                <div className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 flex-1">
-                            <div className="lg:hidden w-10" />
-                            <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
-                                <Scale className="h-5 w-5 text-white" />
+            <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full">
+                {/* Header - Fixed */}
+                <div className="flex-shrink-0 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800 px-3 sm:px-4 py-2 sm:py-3">
+                    <div className="flex items-center justify-between gap-2 sm:gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                            {/* Mobile menu button */}
+                            <button
+                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                                className="lg:hidden p-2 text-gray-400 hover:text-white flex-shrink-0"
+                            >
+                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            </button>
+                            <div className="p-1.5 sm:p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex-shrink-0">
+                                <Scale className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                             </div>
-                            <div>
-                                <h1 className="text-lg font-bold text-white">NOMOS AI</h1>
-                                <p className="text-xs text-gray-400">
+                            <div className="min-w-0">
+                                <h1 className="text-base sm:text-lg font-bold text-white truncate">NOMOS AI</h1>
+                                <p className="text-[10px] sm:text-xs text-gray-400 hidden sm:block truncate">
                                     {aiMode === 'professional'
                                         ? 'Super Intelligent Global Legal Assistant'
                                         : 'Friendly Global Legal Companion'}
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                             {isFreeTrial && (
-                                <span className="hidden sm:inline-flex items-center text-xs bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-full font-medium">
-                                    {freeTrialRemaining} message{freeTrialRemaining !== 1 ? 's' : ''} left
+                                <span className="inline-flex items-center text-[10px] sm:text-xs bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full font-medium">
+                                    {freeTrialRemaining} left
                                 </span>
                             )}
                         </div>
