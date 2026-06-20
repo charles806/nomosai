@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Copy, Check, Search, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import rehypeRaw from 'rehype-raw';
 import { Message } from '../types/chat';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,6 +9,20 @@ interface ChatMessagesProps {
   isLoading: boolean;
   onPromptSelect?: (prompt: string) => void;
 }
+
+// Dynamic typing status messages
+const TYPING_STATUSES = [
+  'Searching legal databases...',
+  'Analyzing case law...',
+  'Studying the law...',
+  'Digging deep...',
+  'Researching precedents...',
+  'Consulting legal sources...',
+  'Reviewing statutes...',
+  'Examining constitutional provisions...',
+  'Cross-referencing cases...',
+  'Preparing your answer...',
+];
 
 const parseAndStyleLegalText = (text: string): string => {
   const casePattern = /([A-Z][a-zA-Z\s&.']+\s+v\.?\s+[A-Z][a-zA-Z\s&.']+\s*\(\d{4}\)[^\n.]*(?:NWLR|SC|LPELR|NCLR|All NLR|SCNLR|NMLR)[^\n.]*)/g;
@@ -74,7 +87,7 @@ function UserAvatar({ name }: { name: string }) {
   );
 }
 
-// Shared markdown component overrides — all text rendered pure white
+// Shared markdown components - plain text only, no code block styling
 const markdownComponents = {
   p: ({ ...props }) => (
     <p style={{ marginBottom: '0.6rem', lineHeight: '1.7', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
@@ -109,13 +122,41 @@ const markdownComponents = {
   blockquote: ({ ...props }) => (
     <blockquote style={{ borderLeft: '3px solid #4b5563', paddingLeft: '0.75rem', color: '#e5e7eb', margin: '0.5rem 0' }} {...props} />
   ),
-  code: ({ ...props }) => (
-    <code style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', fontSize: '0.85em', color: '#ffffff' }} {...props} />
-  ),
-  pre: ({ ...props }) => (
-    <pre style={{ backgroundColor: 'rgba(0,0,0,0.35)', padding: '0.85rem', borderRadius: '0.5rem', overflow: 'auto', color: '#ffffff' }} {...props} />
-  ),
+  // Render code as plain inline text - no special styling
+  code: ({ node, inline, children, ...props }: any) => {
+    return (
+      <span style={{ color: '#ffffff' }} {...props}>
+        {children}
+      </span>
+    );
+  },
+  // Render code blocks as plain text paragraphs
+  pre: ({ children, ...props }: any) => {
+    return (
+      <div style={{ color: '#ffffff', whiteSpace: 'pre-wrap', marginBottom: '0.6rem', lineHeight: '1.7' }} {...props}>
+        {children}
+      </div>
+    );
+  },
 };
+
+// Dynamic typing status component
+function TypingStatus() {
+  const [statusIndex, setStatusIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStatusIndex((prev) => (prev + 1) % TYPING_STATUSES.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <span className="text-blue-400 text-sm animate-pulse">
+      {TYPING_STATUSES[statusIndex]}
+    </span>
+  );
+}
 
 export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -226,7 +267,7 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
 
                 <div className="flex flex-col min-w-0 flex-1 max-w-full">
                   <div className="prose prose-sm max-w-none break-words prose-invert">
-                    <ReactMarkdown components={markdownComponents} rehypePlugins={[rehypeRaw]}>
+                    <ReactMarkdown components={markdownComponents}>
                       {displayContent}
                     </ReactMarkdown>
                   </div>
@@ -259,11 +300,11 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
               <NomosAvatar />
               <div className="flex items-center gap-3 py-2">
                 <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-                <span className="text-gray-400 text-sm">Thinking...</span>
+                <TypingStatus />
               </div>
             </div>
           )}
