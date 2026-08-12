@@ -22,6 +22,7 @@ export default function DashboardPage() {
         canSendMessage,
         isFreeTrial,
         freeTrialRemaining,
+        msUntilReset,
         incrementMessageCount,
         newBadge,
         clearNewBadge,
@@ -133,7 +134,7 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                             {isFreeTrial && (
                                 <span className="inline-flex items-center text-[10px] sm:text-xs bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full font-medium">
-                                    {freeTrialRemaining} left
+                                    {freeTrialRemaining} left today
                                 </span>
                             )}
                         </div>
@@ -162,7 +163,7 @@ export default function DashboardPage() {
                     placeholder={
                         canSendMessage
                             ? 'Ask any legal question...'
-                            : 'Free trial ended — upgrade to continue'
+                            : 'Daily limit reached — upgrade to continue'
                     }
                 />
             </div>
@@ -176,7 +177,7 @@ export default function DashboardPage() {
             />
 
             {/* Upgrade Modal */}
-            <UpgradeModal isOpen={showUpgrade} />
+            <UpgradeModal isOpen={showUpgrade} msUntilReset={msUntilReset} />
 
             {/* Badge Notification */}
             <BadgeNotification badge={newBadge} onClose={clearNewBadge} />
