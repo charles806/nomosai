@@ -4,9 +4,20 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface UpgradeModalProps {
     isOpen: boolean;
+    msUntilReset?: number;
 }
 
-export function UpgradeModal({ isOpen }: UpgradeModalProps) {
+function formatResetTime(ms?: number): string {
+    if (!ms || ms <= 0) return 'shortly';
+    const hours = Math.floor(ms / (60 * 60 * 1000));
+    const minutes = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
+
+    if (hours <= 0) return `in ${minutes} minute${minutes === 1 ? '' : 's'}`;
+    if (minutes === 0) return `in ${hours} hour${hours === 1 ? '' : 's'}`;
+    return `in ${hours}h ${minutes}m`;
+}
+
+export function UpgradeModal({ isOpen, msUntilReset }: UpgradeModalProps) {
     const navigate = useNavigate();
     const { signOut } = useAuth();
 
@@ -73,7 +84,7 @@ export function UpgradeModal({ isOpen }: UpgradeModalProps) {
                     {/* Eyebrow */}
                     <div className="flex items-center justify-center gap-2 text-[#3b82f6] text-[11px] font-semibold tracking-[0.2em] uppercase mb-7">
                         <span className="h-px w-6 bg-[#3b82f6]/60" />
-                        Trial Complete
+                        Daily Limit Reached
                         <span className="h-px w-6 bg-[#3b82f6]/60" />
                     </div>
 
@@ -86,13 +97,13 @@ export function UpgradeModal({ isOpen }: UpgradeModalProps) {
 
                     {/* Title */}
                     <h2 className="font-serif text-2xl sm:text-[28px] font-semibold text-[#f2f0ea] text-center mb-3.5 leading-tight">
-                        Your free trial has ended
+                        You've hit today's message limit
                     </h2>
 
                     {/* Message */}
                     <p className="text-[#8b92a8] text-center text-[15px] mb-9 leading-relaxed">
-                        You've used all <span className="text-[#e8e6e0] font-medium">5 free messages</span>.
-                        Upgrade to a premium plan to keep working with NOMOS AI's legal intelligence.
+                        Free accounts get <span className="text-[#e8e6e0] font-medium">10 messages per day</span>.
+                        Your limit resets {formatResetTime(msUntilReset)}, or upgrade to a premium plan for unlimited access to NOMOS AI's legal intelligence.
                     </p>
 
                     {/* Upgrade Button */}
