@@ -7,6 +7,8 @@ export interface UserProfile {
     email: string;
     message_count: number;
     total_messages: number;
+    daily_message_count: number;
+    daily_reset_at: string;
     subscription_plan: string | null;
     subscription_status: string;
     payment_reference: string | null;
@@ -23,21 +25,43 @@ export interface Badge {
     earned_at?: string;
 }
 
-const FREE_TRIAL_LIMIT = 5;
-const LOCAL_MSG_COUNT_KEY = 'nomos_msg_count';
+const DAILY_MESSAGE_LIMIT = 10;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const LOCAL_DAILY_COUNT_KEY = 'nomos_daily_msg_count';
+const LOCAL_DAILY_RESET_KEY = 'nomos_daily_reset_at';
 const LOCAL_TOTAL_MSG_KEY = 'nomos_total_msg';
 
-function getLocalMessageCount(): number {
+function isResetDue(resetAt: string | null): boolean {
+    if (!resetAt) return true;
+    return Date.now() - new Date(resetAt).getTime() >= DAY_MS;
+}
+
+function getLocalDailyCount(): number {
     try {
-        return parseInt(localStorage.getItem(LOCAL_MSG_COUNT_KEY) || '0', 10);
+        if (isResetDue(localStorage.getItem(LOCAL_DAILY_RESET_KEY))) return 0;
+        return parseInt(localStorage.getItem(LOCAL_DAILY_COUNT_KEY) || '0', 10);
     } catch {
         return 0;
     }
 }
 
-function setLocalMessageCount(count: number) {
+function getLocalResetAt(): string {
     try {
-        localStorage.setItem(LOCAL_MSG_COUNT_KEY, String(count));
+        const stored = localStorage.getItem(LOCAL_DAILY_RESET_KEY);
+        if (stored && !isResetDue(stored)) return stored;
+        const now = new Date().toISOString();
+        localStorage.setItem(LOCAL_DAILY_RESET_KEY, now);
+        localStorage.setItem(LOCAL_DAILY_COUNT_KEY, '0');
+        return now;
+    } catch {
+        return new Date().toISOString();
+    }
+}
+
+function setLocalDailyCount(count: number) {
+    try {
+        localStorage.setItem(LOCAL_DAILY_COUNT_KEY, String(count));
     } catch { /* ignore */ }
 }
 
@@ -62,7 +86,8 @@ export function useSubscription() {
     const [newBadge, setNewBadge] = useState<Badge | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [supabaseFailed, setSupabaseFailed] = useState(false);
-    const [localCount, setLocalCount] = useState(getLocalMessageCount);
+    const [localDailyCount, setLocalDailyCountState] = useState(getLocalDailyCount);
+    const [localResetAt, setLocalResetAtState] = useState(getLocalResetAt);
     const [localTotalCount, setLocalTotalCount] = useState(getLocalTotalMessages);
 
     // Fetch user badges
@@ -96,6 +121,30 @@ export function useSubscription() {
         }
     }, [user]);
 
+    // Resets the daily counter server-side if the 24h window has elapsed
+    const resetDailyQuotaIfDue = useCallback(async (currentProfile: UserProfile) => {
+        if (!isResetDue(currentProfile.daily_reset_at)) return currentProfile;
+
+        const nowIso = new Date().toISOString();
+        const { data: updated, error } = await supabase
+            .from('user_profiles')
+            .update({
+                daily_message_count: 0,
+                daily_reset_at: nowIso,
+                updated_at: nowIso,
+            })
+            .eq('id', currentProfile.id)
+            .select()
+            .single();
+
+        if (error || !updated) {
+            console.error('[useSubscription] Failed to reset daily quota:', error);
+            return currentProfile;
+        }
+
+        return updated as UserProfile;
+    }, []);
+
     // Fetch or create user profile
     useEffect(() => {
         if (!user) {
@@ -109,8 +158,6 @@ export function useSubscription() {
         const fetchProfile = async () => {
             setIsLoading(true);
             try {
-                console.log('[useSubscription] Fetching profile for', user.id);
-
                 const { data, error } = await supabase
                     .from('user_profiles')
                     .select('*')
@@ -120,12 +167,14 @@ export function useSubscription() {
                 if (cancelled) return;
 
                 if (error && error.code === 'PGRST116') {
-                    console.log('[useSubscription] No profile found, creating one...');
+                    const nowIso = new Date().toISOString();
                     const newProfile: Partial<UserProfile> = {
                         id: user.id,
                         email: user.email || '',
                         message_count: 0,
                         total_messages: 0,
+                        daily_message_count: 0,
+                        daily_reset_at: nowIso,
                         subscription_plan: null,
                         subscription_status: 'free_trial',
                         payment_reference: null,
@@ -143,10 +192,10 @@ export function useSubscription() {
                         console.error('[useSubscription] Failed to create profile:', insertError);
                         setSupabaseFailed(true);
                     } else {
-                        console.log('[useSubscription] Profile created:', created);
                         setProfile(created);
-                        setLocalCount(created.message_count ?? 0);
-                        setLocalMessageCount(created.message_count ?? 0);
+                        setLocalDailyCountState(created.daily_message_count ?? 0);
+                        setLocalDailyCount(created.daily_message_count ?? 0);
+                        setLocalResetAtState(created.daily_reset_at);
                         setLocalTotalCount(created.total_messages ?? 0);
                         setLocalTotalMessages(created.total_messages ?? 0);
                     }
@@ -154,14 +203,16 @@ export function useSubscription() {
                     console.error('[useSubscription] Failed to fetch profile:', error);
                     setSupabaseFailed(true);
                 } else {
-                    console.log('[useSubscription] Profile loaded:', data);
-                    setProfile(data);
-                    setLocalCount(data.message_count ?? 0);
-                    setLocalMessageCount(data.message_count ?? 0);
-                    setLocalTotalCount(data.total_messages ?? 0);
-                    setLocalTotalMessages(data.total_messages ?? 0);
+                    const freshProfile = await resetDailyQuotaIfDue(data as UserProfile);
+                    if (cancelled) return;
 
-                    // Fetch badges
+                    setProfile(freshProfile);
+                    setLocalDailyCountState(freshProfile.daily_message_count ?? 0);
+                    setLocalDailyCount(freshProfile.daily_message_count ?? 0);
+                    setLocalResetAtState(freshProfile.daily_reset_at);
+                    setLocalTotalCount(freshProfile.total_messages ?? 0);
+                    setLocalTotalMessages(freshProfile.total_messages ?? 0);
+
                     fetchUserBadges();
                 }
             } catch (err) {
@@ -174,10 +225,11 @@ export function useSubscription() {
 
         fetchProfile();
         return () => { cancelled = true; };
-    }, [user, fetchUserBadges]);
+    }, [user, fetchUserBadges, resetDailyQuotaIfDue]);
 
     // Derive values
-    const messageCount = profile?.message_count ?? localCount;
+    const dailyMessageCount = profile?.daily_message_count ?? localDailyCount;
+    const dailyResetAt = profile?.daily_reset_at ?? localResetAt;
     const totalMessages = profile?.total_messages ?? localTotalCount;
     const subscriptionStatus = profile?.subscription_status ?? 'free_trial';
     const subscriptionPlan = profile?.subscription_plan ?? null;
@@ -185,25 +237,26 @@ export function useSubscription() {
     const canSendMessage =
         isLoading ||
         subscriptionStatus === 'active' ||
-        messageCount < FREE_TRIAL_LIMIT;
+        dailyMessageCount < DAILY_MESSAGE_LIMIT;
 
     const hasActiveSubscription = subscriptionStatus === 'active';
     const isFreeTrial = subscriptionStatus === 'free_trial';
-    const freeTrialRemaining = Math.max(0, FREE_TRIAL_LIMIT - messageCount);
+    const freeTrialRemaining = Math.max(0, DAILY_MESSAGE_LIMIT - dailyMessageCount);
+
+    // Milliseconds until the current window resets — for display purposes
+    const msUntilReset = Math.max(0, DAY_MS - (Date.now() - new Date(dailyResetAt).getTime()));
 
     // Check and award badges
     const checkBadges = useCallback(async (newTotal: number) => {
         if (!user || supabaseFailed) return;
 
         try {
-            // Call the database function to check and award badges
             const { data, error } = await supabase.rpc('check_and_award_badges', {
                 p_user_id: user.id,
                 p_total_messages: newTotal
             });
 
             if (!error && data && data.length > 0) {
-                // Got new badges!
                 const newBadges = data as any[];
                 if (newBadges.length > 0) {
                     setNewBadge({
@@ -212,7 +265,7 @@ export function useSubscription() {
                         icon: newBadges[0].badge_icon,
                         message_threshold: newTotal,
                     });
-                    fetchUserBadges(); // Refresh badge list
+                    fetchUserBadges();
                 }
             }
         } catch (err) {
@@ -223,42 +276,58 @@ export function useSubscription() {
     const incrementMessageCount = useCallback(async () => {
         if (!user) return;
 
-        const currentCount = profile?.message_count ?? localCount;
+        // Local counters always update as a fallback/optimistic layer
+        const dueForReset = isResetDue(dailyResetAt);
+        const currentDaily = dueForReset ? 0 : (profile?.daily_message_count ?? localDailyCount);
         const currentTotal = profile?.total_messages ?? localTotalCount;
-        const newCount = currentCount + 1;
+        const newDaily = currentDaily + 1;
         const newTotal = currentTotal + 1;
+        const nowIso = new Date().toISOString();
 
-        // Always update local counters
-        setLocalCount(newCount);
-        setLocalMessageCount(newCount);
+        setLocalDailyCountState(newDaily);
+        setLocalDailyCount(newDaily);
+        if (dueForReset) {
+            setLocalResetAtState(nowIso);
+            try { localStorage.setItem(LOCAL_DAILY_RESET_KEY, nowIso); } catch { /* ignore */ }
+        }
         setLocalTotalCount(newTotal);
         setLocalTotalMessages(newTotal);
 
-        // Try Supabase update
         if (profile && !supabaseFailed) {
+            const updatePayload: Record<string, any> = {
+                daily_message_count: newDaily,
+                total_messages: newTotal,
+                updated_at: nowIso,
+            };
+            if (dueForReset) {
+                updatePayload.daily_reset_at = nowIso;
+            }
+
             const { error } = await supabase
                 .from('user_profiles')
-                .update({
-                    message_count: newCount,
-                    total_messages: newTotal,
-                    updated_at: new Date().toISOString(),
-                })
+                .update(updatePayload)
                 .eq('id', user.id);
 
             if (error) {
                 console.error('[useSubscription] Failed to increment message count:', error);
             } else {
                 setProfile((prev) =>
-                    prev ? { ...prev, message_count: newCount, total_messages: newTotal } : prev
+                    prev
+                        ? {
+                            ...prev,
+                            daily_message_count: newDaily,
+                            daily_reset_at: dueForReset ? nowIso : prev.daily_reset_at,
+                            total_messages: newTotal,
+                        }
+                        : prev
                 );
 
-                // Check for new badges at milestones
                 if (newTotal === 20 || newTotal === 50 || newTotal === 100 || newTotal === 200 || newTotal === 500) {
                     checkBadges(newTotal);
                 }
             }
         }
-    }, [user, profile, localCount, localTotalCount, supabaseFailed, checkBadges]);
+    }, [user, profile, dailyResetAt, localDailyCount, localTotalCount, supabaseFailed, checkBadges]);
 
     const clearNewBadge = useCallback(() => {
         setNewBadge(null);
@@ -297,7 +366,7 @@ export function useSubscription() {
         newBadge,
         clearNewBadge,
         isLoading,
-        messageCount,
+        dailyMessageCount,
         totalMessages,
         subscriptionStatus,
         subscriptionPlan,
@@ -305,6 +374,8 @@ export function useSubscription() {
         hasActiveSubscription,
         isFreeTrial,
         freeTrialRemaining,
+        msUntilReset,
+        dailyMessageLimit: DAILY_MESSAGE_LIMIT,
         incrementMessageCount,
         activateSubscription,
     };
