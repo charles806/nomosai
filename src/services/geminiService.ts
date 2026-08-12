@@ -1,4 +1,4 @@
-import { API_CONFIG } from '../config/apiConfig';
+import { supabase } from './supabaseClient';
 import { FileAttachment } from '../types/chat';
 
 const PROFESSIONAL_SYSTEM_PROMPT = `You are NOMOS AI, a super-intelligent AI legal assistant with comprehensive global legal knowledge, with special expertise in Nigerian law, updated through 2026.
@@ -203,6 +203,11 @@ CORE PERSONALITY & APPROACH:
 
 Always be helpful, honest, and maintain a natural conversational flow while staying true to your legal expertise.`;
 
+interface GeminiPart {
+  text?: string;
+  inline_data?: { mime_type: string; data: string };
+}
+
 export class GeminiService {
   private static instance: GeminiService;
   private conversationHistory: Array<{ role: string, content: string }> = [];
@@ -221,8 +226,52 @@ export class GeminiService {
     this.userPreferences.mode = mode;
   }
 
+  private buildParts(userMessage: string, attachments?: FileAttachment[]): GeminiPart[] {
+    const contextualPrompt = this.buildContextualPrompt(userMessage, attachments);
+    const parts: GeminiPart[] = [{ text: contextualPrompt }];
 
-  // NEW: Streaming response method
+    if (attachments && attachments.length > 0) {
+      for (const attachment of attachments) {
+        if (!attachment.base64) continue;
+        if (attachment.type.startsWith('image/') || attachment.type === 'application/pdf') {
+          parts.push({
+            inline_data: {
+              mime_type: attachment.type,
+              data: attachment.base64,
+            },
+          });
+        }
+      }
+
+      if (!userMessage.toLowerCase().includes('analyze')) {
+        parts[0].text = `Analyze these documents/images thoroughly and answer: ${contextualPrompt}`;
+      }
+    }
+
+    return parts;
+  }
+
+  private async callGateway(parts: GeminiPart[]): Promise<{ text: string; provider: string }> {
+    const systemPrompt = this.userPreferences.mode === 'companion' ? COMPANION_SYSTEM_PROMPT : PROFESSIONAL_SYSTEM_PROMPT;
+
+    const { data, error } = await supabase.functions.invoke('ai-gateway', {
+      body: { systemPrompt, parts },
+    });
+
+    if (error) {
+      throw new Error(error.message || 'AI gateway request failed');
+    }
+
+    if (!data?.text) {
+      throw new Error(data?.error || 'AI gateway returned an empty response');
+    }
+
+    return { text: data.text, provider: data.provider };
+  }
+
+  // Streaming-style response: the gateway itself is not SSE, so we fetch the
+  // full answer once and then feed it to onChunk progressively for the same
+  // typing UX the UI already expects.
   public async generateResponseStream(
     userMessage: string,
     history: any[] = [],
@@ -235,101 +284,28 @@ export class GeminiService {
       this.conversationHistory = this.conversationHistory.slice(-40);
     }
 
-    const contextualPrompt = this.buildContextualPrompt(userMessage, attachments);
-    const systemPrompt = this.userPreferences.mode === 'companion' ? COMPANION_SYSTEM_PROMPT : PROFESSIONAL_SYSTEM_PROMPT;
-
-    const parts: any[] = [{ text: contextualPrompt }];
-
-    if (attachments && attachments.length > 0) {
-      for (const attachment of attachments) {
-        if (!attachment.base64) continue;
-        if (attachment.type.startsWith('image/') || attachment.type === 'application/pdf') {
-          parts.push({
-            inline_data: {
-              mime_type: attachment.type,
-              data: attachment.base64
-            }
-          });
-        }
-      }
-      
-      if (!userMessage.toLowerCase().includes('analyze')) {
-        parts[0].text = `Analyze these documents/images thoroughly and answer: ${contextualPrompt}`;
-      }
-    }
+    const parts = this.buildParts(userMessage, attachments);
 
     try {
-      const requestBody = {
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: 'user', parts }],
-        generationConfig: {
-          temperature: 0.0,
-          maxOutputTokens: 8192,
-          topP: 0.1,
-          topK: 40
-        }
-      };
+      const { text: fullText } = await this.callGateway(parts);
 
-      // Use streaming endpoint
-      const response = await fetch(`${API_CONFIG.GEMINI_API_URL}:streamGenerateContent?key=${API_CONFIG.GEMINI_API_KEY}&alt=sse`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || "API Error");
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullText = '';
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const jsonStr = line.slice(6);
-                const data = JSON.parse(jsonStr);
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                
-                if (text) {
-                  fullText += text;
-                  if (onChunk) {
-                    onChunk(text);
-                  }
-                }
-              } catch (e) {
-                // Skip invalid JSON
-              }
-            }
-          }
+      if (onChunk) {
+        const words = fullText.split(' ');
+        for (let i = 0; i < words.length; i++) {
+          onChunk(i === 0 ? words[i] : ' ' + words[i]);
+          // eslint-disable-next-line no-await-in-loop
+          await new Promise(resolve => setTimeout(resolve, 12));
         }
       }
 
-      if (fullText) {
-        this.conversationHistory.push({ role: 'assistant', content: fullText });
-        return fullText;
-      }
-
-      return "I'm processing your legal query. Please try again.";
+      this.conversationHistory.push({ role: 'assistant', content: fullText });
+      return fullText;
     } catch (error: any) {
-      console.error("❌ API Error:", error);
-      
-      // Fallback to non-streaming if streaming fails
+      console.error("❌ Gateway Error:", error);
       return this.generateResponse(userMessage, history, attachments);
     }
   }
 
-  // Keep original method as fallback
   public async generateResponse(userMessage: string, _history: any[] = [], attachments?: FileAttachment[]): Promise<string> {
     this.conversationHistory.push({ role: 'user', content: userMessage });
 
@@ -337,59 +313,14 @@ export class GeminiService {
       this.conversationHistory = this.conversationHistory.slice(-40);
     }
 
-    const contextualPrompt = this.buildContextualPrompt(userMessage, attachments);
-    const systemPrompt = this.userPreferences.mode === 'companion' ? COMPANION_SYSTEM_PROMPT : PROFESSIONAL_SYSTEM_PROMPT;
-
-    const parts: any[] = [{ text: contextualPrompt }];
-
-    if (attachments && attachments.length > 0) {
-      for (const attachment of attachments) {
-        if (!attachment.base64) continue;
-        if (attachment.type.startsWith('image/') || attachment.type === 'application/pdf') {
-          parts.push({
-            inline_data: {
-              mime_type: attachment.type,
-              data: attachment.base64
-            }
-          });
-        }
-      }
-      
-      if (!userMessage.toLowerCase().includes('analyze')) {
-        parts[0].text = `Analyze these documents/images thoroughly and answer: ${contextualPrompt}`;
-      }
-    }
+    const parts = this.buildParts(userMessage, attachments);
 
     try {
-      const requestBody = {
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: 'user', parts }],
-        generationConfig: {
-          temperature: 0.0,
-          maxOutputTokens: 8192,
-          topP: 0.1,
-          topK: 40
-        }
-      };
-
-      const response = await fetch(`${API_CONFIG.GEMINI_API_URL}?key=${API_CONFIG.GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error?.message || "API Error");
-
-      const textResponse = data.candidates?.[0]?.content?.parts?.find((p: any) => p.text)?.text;
-
-      if (textResponse) {
-        this.conversationHistory.push({ role: 'assistant', content: textResponse });
-        return textResponse;
-      }
-      return "I'm processing your legal query. Please try again.";
+      const { text } = await this.callGateway(parts);
+      this.conversationHistory.push({ role: 'assistant', content: text });
+      return text;
     } catch (error: any) {
-      console.error("❌ API Error:", error);
+      console.error("❌ Gateway Error:", error);
       return "I'm temporarily unable to access the legal database. Please try again shortly.";
     }
   }
