@@ -74,28 +74,37 @@ function UserAvatar({ name }: { name: string }) {
   );
 }
 
-// Shared markdown component overrides — all text rendered pure white
+function formatTime(timestamp: Date): string {
+  try {
+    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+
+// Shared markdown component overrides — all text rendered pure white,
+// which works on both the blue user bubble and the dark AI bubble.
 const markdownComponents = {
   p: ({ ...props }) => (
-    <p style={{ marginBottom: '0.6rem', lineHeight: '1.7', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
+    <p style={{ marginBottom: '0.5rem', lineHeight: '1.6', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
   ),
   h1: ({ ...props }) => (
-    <h1 style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.3rem', marginTop: '0.75rem', marginBottom: '0.5rem' }} {...props} />
+    <h1 style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.2rem', marginTop: '0.5rem', marginBottom: '0.4rem' }} {...props} />
   ),
   h2: ({ ...props }) => (
-    <h2 style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.15rem', marginTop: '0.75rem', marginBottom: '0.5rem' }} {...props} />
+    <h2 style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.1rem', marginTop: '0.5rem', marginBottom: '0.4rem' }} {...props} />
   ),
   h3: ({ ...props }) => (
-    <h3 style={{ color: '#ffffff', fontWeight: 600, fontSize: '1.05rem', marginTop: '0.5rem', marginBottom: '0.5rem' }} {...props} />
+    <h3 style={{ color: '#ffffff', fontWeight: 600, fontSize: '1.02rem', marginTop: '0.4rem', marginBottom: '0.4rem' }} {...props} />
   ),
   ul: ({ ...props }) => (
-    <ul style={{ marginBottom: '0.6rem', marginTop: '0.25rem', paddingLeft: '1.25rem', color: '#ffffff' }} {...props} />
+    <ul style={{ marginBottom: '0.5rem', marginTop: '0.2rem', paddingLeft: '1.15rem', color: '#ffffff' }} {...props} />
   ),
   ol: ({ ...props }) => (
-    <ol style={{ marginBottom: '0.6rem', marginTop: '0.25rem', paddingLeft: '1.25rem', color: '#ffffff' }} {...props} />
+    <ol style={{ marginBottom: '0.5rem', marginTop: '0.2rem', paddingLeft: '1.15rem', color: '#ffffff' }} {...props} />
   ),
   li: ({ ...props }) => (
-    <li style={{ marginBottom: '0.3rem', lineHeight: '1.65', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
+    <li style={{ marginBottom: '0.25rem', lineHeight: '1.55', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
   ),
   strong: ({ ...props }) => (
     <strong style={{ color: '#ffffff', fontWeight: 700 }} {...props} />
@@ -104,13 +113,13 @@ const markdownComponents = {
     <em style={{ color: '#ffffff' }} {...props} />
   ),
   a: ({ ...props }) => (
-    <a style={{ color: '#60a5fa', textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer" {...props} />
+    <a style={{ color: '#bfdbfe', textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer" {...props} />
   ),
   blockquote: ({ ...props }) => (
-    <blockquote style={{ borderLeft: '3px solid #4b5563', paddingLeft: '0.75rem', color: '#e5e7eb', margin: '0.5rem 0' }} {...props} />
+    <blockquote style={{ borderLeft: '3px solid rgba(255,255,255,0.35)', paddingLeft: '0.75rem', color: '#f1f5f9', margin: '0.4rem 0' }} {...props} />
   ),
   code: ({ ...props }) => (
-    <code style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', fontSize: '0.85em', color: '#ffffff' }} {...props} />
+    <code style={{ backgroundColor: 'rgba(0,0,0,0.25)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', fontSize: '0.85em', color: '#ffffff' }} {...props} />
   ),
   pre: ({ ...props }) => (
     <pre style={{ backgroundColor: 'rgba(0,0,0,0.35)', padding: '0.85rem', borderRadius: '0.5rem', overflow: 'auto', color: '#ffffff' }} {...props} />
@@ -147,6 +156,11 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
       return user.email.split('@')[0];
     }
     return 'there';
+  };
+
+  const getUserDisplayName = () => {
+    if (!user) return 'You';
+    return user.user_metadata?.full_name || user.email || 'You';
   };
 
   return (
@@ -199,55 +213,100 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
       )}
 
       {messages.length > 0 && (
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-8">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-4">
           {messages.map((message) => {
-            const isUser = message.role === 'user';
+            const isUser = message.type === 'user';
             const displayContent = isUser ? message.content : parseAndStyleLegalText(message.content);
 
-            // USER MESSAGE: right-aligned bubble, no avatar, no label (ChatGPT style)
+            // USER MESSAGE: right-aligned bubble, blue gradient, avatar on the far right
             if (isUser) {
               return (
-                <div key={message.id} className="flex justify-end">
-                  <div className="max-w-[85%] sm:max-w-[75%] rounded-3xl px-4 py-2.5 bg-gray-700/70">
-                    <div className="prose prose-sm max-w-none break-words prose-invert">
-                      <ReactMarkdown components={markdownComponents}>
-                        {displayContent}
-                      </ReactMarkdown>
+                <div key={message.id} className="flex justify-end items-end gap-2 group">
+                  <div className="max-w-[80%] sm:max-w-[65%] flex flex-col items-end gap-1">
+                    {message.attachments && message.attachments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 justify-end mb-1">
+                        {message.attachments.map((file) => (
+                          <div
+                            key={file.id}
+                            className="flex items-center gap-2 px-3 py-2 bg-blue-900/40 rounded-lg border border-blue-700/50"
+                          >
+                            <FileText className="h-4 w-4 text-blue-300 flex-shrink-0" />
+                            <span className="text-xs text-blue-100 truncate max-w-[120px]">{file.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div
+                      className="px-4 py-2.5 shadow-md"
+                      style={{
+                        background: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
+                        borderRadius: '18px 18px 4px 18px',
+                      }}
+                    >
+                      <div className="prose prose-sm max-w-none break-words prose-invert">
+                        <ReactMarkdown components={markdownComponents}>
+                          {displayContent}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-[10px] text-gray-500">{formatTime(message.timestamp)}</span>
+                      <button
+                        onClick={() => handleCopy(message.content, message.id)}
+                        className="text-gray-500 hover:text-white transition-colors"
+                        title="Copy"
+                      >
+                        {copiedId === message.id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                      </button>
                     </div>
                   </div>
+
+                  <UserAvatar name={getUserDisplayName()} />
                 </div>
               );
             }
 
-            // ASSISTANT MESSAGE: left-aligned, full-width, no bubble, with avatar
+            // ASSISTANT MESSAGE: left-aligned bubble, dark surface, avatar on the far left
             return (
-              <div key={message.id} className="flex gap-3 sm:gap-4">
+              <div key={message.id} className="flex items-end gap-2 group">
                 <NomosAvatar />
 
-                <div className="flex flex-col min-w-0 flex-1 max-w-full">
-                  <div className="prose prose-sm max-w-none break-words prose-invert">
-                    <ReactMarkdown components={markdownComponents} rehypePlugins={[rehypeRaw]}>
-                      {displayContent}
-                    </ReactMarkdown>
+                <div className="max-w-[85%] sm:max-w-[75%] flex flex-col items-start gap-1 min-w-0">
+                  <div
+                    className="px-4 py-2.5 shadow-md min-w-0"
+                    style={{
+                      backgroundColor: '#1f2937',
+                      borderRadius: '18px 18px 18px 4px',
+                    }}
+                  >
+                    <div className="prose prose-sm max-w-none break-words prose-invert">
+                      <ReactMarkdown components={markdownComponents} rehypePlugins={[rehypeRaw]}>
+                        {displayContent}
+                      </ReactMarkdown>
+                    </div>
                   </div>
 
-                  {/* Copy Button */}
-                  <button
-                    onClick={() => handleCopy(message.content, message.id)}
-                    className="mt-2 flex items-center gap-1 px-2 py-1 -ml-2 text-xs text-gray-400 hover:text-white transition-colors rounded w-fit"
-                  >
-                    {copiedId === message.id ? (
-                      <>
-                        <Check className="h-3 w-3" />
-                        <span>Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2 pl-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleCopy(message.content, message.id)}
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-white transition-colors"
+                    >
+                      {copiedId === message.id ? (
+                        <>
+                          <Check className="h-3 w-3" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3" />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                    <span className="text-[10px] text-gray-500">{formatTime(message.timestamp)}</span>
+                  </div>
                 </div>
               </div>
             );
@@ -255,15 +314,17 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
 
           {/* Loading Indicator */}
           {isLoading && (
-            <div className="flex gap-3 sm:gap-4">
+            <div className="flex items-end gap-2">
               <NomosAvatar />
-              <div className="flex items-center gap-3 py-2">
+              <div
+                className="flex items-center gap-3 px-4 py-3 shadow-md"
+                style={{ backgroundColor: '#1f2937', borderRadius: '18px 18px 18px 4px' }}
+              >
                 <div className="flex gap-1">
                   <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                   <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                   <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-                <span className="text-gray-400 text-sm">Thinking...</span>
               </div>
             </div>
           )}
