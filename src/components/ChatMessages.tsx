@@ -54,22 +54,52 @@ const PROMPT_CARDS = [
   },
 ];
 
-// Unique NOMOS AI Avatar Component
+// NOMOS AI Avatar — uses the shared logo, falls back to the "N" mark if the image fails to load
 function NomosAvatar() {
+  const [imgFailed, setImgFailed] = useState(false);
+
+  if (imgFailed) {
+    return (
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 flex items-center justify-center shadow-lg shadow-blue-500/30 relative overflow-hidden flex-shrink-0">
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-white/10 rounded-full" />
+        <span className="text-white font-bold text-sm relative z-10 tracking-tight" style={{ fontFamily: 'ui-monospace, monospace' }}>N</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 flex items-center justify-center shadow-lg shadow-blue-500/30 relative overflow-hidden flex-shrink-0">
-      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-white/10 rounded-full" />
-      <span className="text-white font-bold text-sm relative z-10 tracking-tight" style={{ fontFamily: 'ui-monospace, monospace' }}>N</span>
+    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 shadow-lg shadow-blue-500/30 bg-gray-800">
+      <img
+        src="/logo.png"
+        alt="NOMOS AI"
+        className="w-full h-full object-cover"
+        onError={() => setImgFailed(true)}
+      />
     </div>
   );
 }
 
-// User Avatar Component
+// User Avatar — also uses the shared logo, falls back to initial if missing
 function UserAvatar({ name }: { name: string }) {
+  const [imgFailed, setImgFailed] = useState(false);
   const initial = name?.charAt(0).toUpperCase() || 'U';
+
+  if (imgFailed) {
+    return (
+      <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+        <span className="text-white font-medium text-sm">{initial}</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
-      <span className="text-white font-medium text-sm">{initial}</span>
+    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-700">
+      <img
+        src="/logo.png"
+        alt={name}
+        className="w-full h-full object-cover"
+        onError={() => setImgFailed(true)}
+      />
     </div>
   );
 }
@@ -84,18 +114,26 @@ function formatTime(timestamp: Date): string {
 
 // Shared markdown component overrides — all text rendered pure white,
 // which works on both the blue user bubble and the dark AI bubble.
+// Headings get a soft highlighter background so they stand out at a glance.
+const headingHighlight = {
+  backgroundColor: 'rgba(96, 165, 250, 0.18)',
+  borderRadius: '4px',
+  padding: '0.1rem 0.35rem',
+  display: 'inline-block',
+};
+
 const markdownComponents = {
   p: ({ ...props }) => (
     <p style={{ marginBottom: '0.5rem', lineHeight: '1.6', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
   ),
   h1: ({ ...props }) => (
-    <h1 style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.2rem', marginTop: '0.5rem', marginBottom: '0.4rem' }} {...props} />
+    <h1 style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.2rem', marginTop: '0.5rem', marginBottom: '0.4rem', ...headingHighlight }} {...props} />
   ),
   h2: ({ ...props }) => (
-    <h2 style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.1rem', marginTop: '0.5rem', marginBottom: '0.4rem' }} {...props} />
+    <h2 style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.1rem', marginTop: '0.5rem', marginBottom: '0.4rem', ...headingHighlight }} {...props} />
   ),
   h3: ({ ...props }) => (
-    <h3 style={{ color: '#ffffff', fontWeight: 600, fontSize: '1.02rem', marginTop: '0.4rem', marginBottom: '0.4rem' }} {...props} />
+    <h3 style={{ color: '#ffffff', fontWeight: 600, fontSize: '1.02rem', marginTop: '0.4rem', marginBottom: '0.4rem', ...headingHighlight }} {...props} />
   ),
   ul: ({ ...props }) => (
     <ul style={{ marginBottom: '0.5rem', marginTop: '0.2rem', paddingLeft: '1.15rem', color: '#ffffff' }} {...props} />
@@ -213,7 +251,7 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
       )}
 
       {messages.length > 0 && (
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+        <div className="max-w-3xl mx-auto px-2 sm:px-6 py-6 space-y-4">
           {messages.map((message) => {
             const isUser = message.type === 'user';
             const displayContent = isUser ? message.content : parseAndStyleLegalText(message.content);
@@ -221,7 +259,7 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
             // USER MESSAGE: right-aligned bubble, blue gradient, avatar on the far right
             if (isUser) {
               return (
-                <div key={message.id} className="flex justify-end items-end gap-2 group">
+                <div key={message.id} className="flex justify-end items-end gap-1.5 sm:gap-2 group">
                   <div className="max-w-[80%] sm:max-w-[65%] flex flex-col items-end gap-1">
                     {message.attachments && message.attachments.length > 0 && (
                       <div className="flex flex-wrap gap-2 justify-end mb-1">
@@ -270,7 +308,10 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
 
             // ASSISTANT MESSAGE: left-aligned bubble, dark surface, avatar on the far left
             return (
-              <div key={message.id} className="flex items-end gap-2 group">
+              <div
+                key={message.id}
+                className="flex items-end gap-1.5 sm:gap-2 group -ml-1 sm:ml-0"
+              >
                 <NomosAvatar />
 
                 <div className="max-w-[85%] sm:max-w-[75%] flex flex-col items-start gap-1 min-w-0">
@@ -314,7 +355,7 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
 
           {/* Loading Indicator */}
           {isLoading && (
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-1.5 sm:gap-2 -ml-1 sm:ml-0">
               <NomosAvatar />
               <div
                 className="flex items-center gap-3 px-4 py-3 shadow-md"
