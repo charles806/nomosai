@@ -96,7 +96,7 @@ async function callOpenRouter(systemPrompt: string, parts: GeminiPart[]): Promis
     body: JSON.stringify({
       model: OPENROUTER_MODEL,
       temperature: 0.0,
-      max_tokens: 8192,
+      max_tokens: 2048,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content },
