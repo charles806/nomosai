@@ -11,14 +11,14 @@ const corsHeaders = {
 // Keys are read from Supabase Edge Function secrets (set with `supabase secrets set`).
 // They never touch the client bundle or Vercel env — that's the whole point of this function.
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || '';
-const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY') || '';
+const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY') || '';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-// Change to whichever OpenRouter model you want as the fallback. This one
-// is vision-capable, so unlike a text-only fallback, attached images still
-// work here instead of silently being dropped.
-const OPENROUTER_MODEL = 'anthropic/claude-sonnet-4.5';
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
+// deepseek-chat / deepseek-reasoner were retired July 2026 — use these IDs now.
+// V4-Flash is the cheap/fast tier; swap to 'deepseek-v4-pro' for higher quality
+// once the free 5M-token grant is used up and cost becomes a factor either way.
+const DEEPSEEK_MODEL = 'deepseek-v4-flash';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
@@ -64,63 +64,51 @@ async function callGemini(systemPrompt: string, parts: GeminiPart[]): Promise<st
   return text;
 }
 
-async function callOpenRouter(systemPrompt: string, parts: GeminiPart[]): Promise<string> {
-  if (!OPENROUTER_API_KEY) throw new Error('OpenRouter key not configured');
+async function callDeepSeek(systemPrompt: string, parts: GeminiPart[]): Promise<string> {
+  if (!DEEPSEEK_API_KEY) throw new Error('DeepSeek key not configured');
 
-  // Unlike a text-only fallback, we keep images intact here — OpenRouter's
-  // vision-capable models accept them as standard OpenAI-style image_url
-  // content blocks with a base64 data URI.
-  const content: Record<string, unknown>[] = parts
-    .map((p) => {
-      if (p.text) return { type: 'text', text: p.text };
-      if (p.inline_data) {
-        return {
-          type: 'image_url',
-          image_url: { url: `data:${p.inline_data.mime_type};base64,${p.inline_data.data}` },
-        };
-      }
-      return null;
-    })
-    .filter((block): block is Record<string, unknown> => block !== null);
+  // DeepSeek's API is text-only — no vision support — so like the original
+  // Groq fallback, we collapse to text and flag any dropped attachments.
+  const textContent = parts.filter(p => p.text).map(p => p.text).join('\n\n');
+  const hadAttachments = parts.some(p => p.inline_data);
+  const userContent = hadAttachments
+    ? `${textContent}\n\n[Note: one or more attached files could not be processed by the fallback model. Let the user know you can't read the attachment right now and ask them to retry shortly.]`
+    : textContent;
 
-  const response = await fetch(OPENROUTER_API_URL, {
+  const response = await fetch(DEEPSEEK_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-      // OpenRouter's own docs require these for attribution/rankings —
-      // omitting them can affect routing/rate limits on their side.
-      'HTTP-Referer': 'https://greenai-sand.vercel.app',
-      'X-Title': 'GREEN AI',
+      Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: OPENROUTER_MODEL,
+      model: DEEPSEEK_MODEL,
       temperature: 0.0,
-      max_tokens: 2048,
+      max_tokens: 4096,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content },
+        { role: 'user', content: userContent },
       ],
     }),
   });
 
   // Read as text first and parse defensively — a gateway returning an "ok"
-  // status with a non-JSON body (e.g. an HTML error page) should surface a
-  // clear error instead of throwing an unhandled parse exception.
+  // status with a non-JSON body should surface a clear error instead of
+  // throwing an unhandled parse exception.
   const rawText = await response.text();
   let data: any;
   try {
     data = JSON.parse(rawText);
   } catch {
-    throw new Error(`OpenRouter returned a non-JSON response (status ${response.status}): ${rawText.slice(0, 200)}`);
+    throw new Error(`DeepSeek returned a non-JSON response (status ${response.status}): ${rawText.slice(0, 200)}`);
   }
 
   if (!response.ok) {
-    throw new Error(data?.error?.message || `OpenRouter API error (${response.status})`);
+    throw new Error(data?.error?.message || `DeepSeek API error (${response.status})`);
   }
 
   const text = data.choices?.[0]?.message?.content;
-  if (!text) throw new Error('OpenRouter returned an empty response');
+  if (!text) throw new Error('DeepSeek returned an empty response');
 
   return text;
 }
@@ -185,16 +173,16 @@ serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (geminiError: any) {
-    console.error('[ai-gateway] Gemini failed, falling back to OpenRouter:', geminiError.message);
+    console.error('[ai-gateway] Gemini failed, falling back to DeepSeek:', geminiError.message);
 
     try {
-      const text = await callOpenRouter(systemPrompt, parts);
-      return new Response(JSON.stringify({ text, provider: 'openrouter' }), {
+      const text = await callDeepSeek(systemPrompt, parts);
+      return new Response(JSON.stringify({ text, provider: 'deepseek' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-    } catch (openRouterError: any) {
-      console.error('[ai-gateway] OpenRouter fallback also failed:', openRouterError.message);
+    } catch (deepSeekError: any) {
+      console.error('[ai-gateway] DeepSeek fallback also failed:', deepSeekError.message);
       return new Response(
         JSON.stringify({ error: 'Both AI providers are currently unavailable. Please try again shortly.' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
