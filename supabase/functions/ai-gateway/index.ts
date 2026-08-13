@@ -11,11 +11,14 @@ const corsHeaders = {
 // Keys are read from Supabase Edge Function secrets (set with `supabase secrets set`).
 // They never touch the client bundle or Vercel env — that's the whole point of this function.
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || '';
-const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') || '';
+const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY') || '';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+// Change to whichever OpenRouter model you want as the fallback. This one
+// is vision-capable, so unlike a text-only fallback, attached images still
+// work here instead of silently being dropped.
+const OPENROUTER_MODEL = 'anthropic/claude-sonnet-4.5';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
@@ -61,41 +64,63 @@ async function callGemini(systemPrompt: string, parts: GeminiPart[]): Promise<st
   return text;
 }
 
-async function callGroq(systemPrompt: string, parts: GeminiPart[]): Promise<string> {
-  if (!GROQ_API_KEY) throw new Error('Groq key not configured');
+async function callOpenRouter(systemPrompt: string, parts: GeminiPart[]): Promise<string> {
+  if (!OPENROUTER_API_KEY) throw new Error('OpenRouter key not configured');
 
-  // Groq's llama-3.3-70b-versatile is text-only, so we collapse the parts to text
-  // and flag any dropped attachments so the model can tell the user.
-  const textContent = parts.filter(p => p.text).map(p => p.text).join('\n\n');
-  const hadAttachments = parts.some(p => p.inline_data);
-  const userContent = hadAttachments
-    ? `${textContent}\n\n[Note: one or more attached files could not be processed by the fallback model. Let the user know you can't read the attachment right now and ask them to retry shortly.]`
-    : textContent;
+  // Unlike a text-only fallback, we keep images intact here — OpenRouter's
+  // vision-capable models accept them as standard OpenAI-style image_url
+  // content blocks with a base64 data URI.
+  const content: Record<string, unknown>[] = parts
+    .map((p) => {
+      if (p.text) return { type: 'text', text: p.text };
+      if (p.inline_data) {
+        return {
+          type: 'image_url',
+          image_url: { url: `data:${p.inline_data.mime_type};base64,${p.inline_data.data}` },
+        };
+      }
+      return null;
+    })
+    .filter((block): block is Record<string, unknown> => block !== null);
 
-  const response = await fetch(GROQ_API_URL, {
+  const response = await fetch(OPENROUTER_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${GROQ_API_KEY}`,
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+      // OpenRouter's own docs require these for attribution/rankings —
+      // omitting them can affect routing/rate limits on their side.
+      'HTTP-Referer': 'https://greenai-sand.vercel.app',
+      'X-Title': 'GREEN AI',
     },
     body: JSON.stringify({
-      model: GROQ_MODEL,
+      model: OPENROUTER_MODEL,
       temperature: 0.0,
       max_tokens: 8192,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userContent },
+        { role: 'user', content },
       ],
     }),
   });
 
-  const data = await response.json();
+  // Read as text first and parse defensively — a gateway returning an "ok"
+  // status with a non-JSON body (e.g. an HTML error page) should surface a
+  // clear error instead of throwing an unhandled parse exception.
+  const rawText = await response.text();
+  let data: any;
+  try {
+    data = JSON.parse(rawText);
+  } catch {
+    throw new Error(`OpenRouter returned a non-JSON response (status ${response.status}): ${rawText.slice(0, 200)}`);
+  }
+
   if (!response.ok) {
-    throw new Error(data.error?.message || `Groq API error (${response.status})`);
+    throw new Error(data?.error?.message || `OpenRouter API error (${response.status})`);
   }
 
   const text = data.choices?.[0]?.message?.content;
-  if (!text) throw new Error('Groq returned an empty response');
+  if (!text) throw new Error('OpenRouter returned an empty response');
 
   return text;
 }
@@ -152,7 +177,7 @@ serve(async (req: Request) => {
     });
   }
 
-  // Primary: Gemini. Fallback: Groq. Any Gemini failure (quota, outage, bad key) triggers fallback.
+  // Primary: Gemini. Fallback: OpenRouter. Any Gemini failure (quota, outage, bad key) triggers fallback.
   try {
     const text = await callGemini(systemPrompt, parts);
     return new Response(JSON.stringify({ text, provider: 'gemini' }), {
@@ -160,16 +185,16 @@ serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (geminiError: any) {
-    console.error('[ai-gateway] Gemini failed, falling back to Groq:', geminiError.message);
+    console.error('[ai-gateway] Gemini failed, falling back to OpenRouter:', geminiError.message);
 
     try {
-      const text = await callGroq(systemPrompt, parts);
-      return new Response(JSON.stringify({ text, provider: 'groq' }), {
+      const text = await callOpenRouter(systemPrompt, parts);
+      return new Response(JSON.stringify({ text, provider: 'openrouter' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-    } catch (groqError: any) {
-      console.error('[ai-gateway] Groq fallback also failed:', groqError.message);
+    } catch (openRouterError: any) {
+      console.error('[ai-gateway] OpenRouter fallback also failed:', openRouterError.message);
       return new Response(
         JSON.stringify({ error: 'Both AI providers are currently unavailable. Please try again shortly.' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
