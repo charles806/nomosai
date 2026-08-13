@@ -13,7 +13,7 @@ const corsHeaders = {
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || '';
 const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY') || '';
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent';
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
 // deepseek-chat / deepseek-reasoner were retired July 2026 — use these IDs now.
 // V4-Flash is the cheap/fast tier; swap to 'deepseek-v4-pro' for higher quality
