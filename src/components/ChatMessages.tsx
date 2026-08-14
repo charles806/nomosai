@@ -60,15 +60,14 @@ function NomosAvatar() {
 
   if (imgFailed) {
     return (
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 flex items-center justify-center shadow-lg shadow-blue-500/30 relative overflow-hidden flex-shrink-0">
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-white/10 rounded-full" />
-        <span className="text-white font-bold text-sm relative z-10 tracking-tight" style={{ fontFamily: 'ui-monospace, monospace' }}>N</span>
+      <div className="w-7 h-7 rounded-full bg-[#3b82f6] flex items-center justify-center flex-shrink-0">
+        <span className="text-white font-semibold text-xs relative z-10 tracking-tight">N</span>
       </div>
     );
   }
 
   return (
-    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 shadow-lg shadow-blue-500/30 bg-gray-800">
+    <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 bg-gray-800">
       <img
         src="/logo.png"
         alt="NOMOS AI"
@@ -86,14 +85,14 @@ function UserAvatar({ name }: { name: string }) {
 
   if (imgFailed) {
     return (
-      <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
-        <span className="text-white font-medium text-sm">{initial}</span>
+      <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+        <span className="text-white font-medium text-xs">{initial}</span>
       </div>
     );
   }
 
   return (
-    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-700">
+    <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 bg-gray-700">
       <img
         src="/logo.png"
         alt={name}
@@ -112,68 +111,62 @@ function formatTime(timestamp: Date): string {
   }
 }
 
-// Shared markdown component overrides.
-// User bubble text stays white (readable on the blue gradient).
-// Assistant text is plain light gray/white on transparent background, ChatGPT-style.
-// Headings get a blue highlighter background so they stand out at a glance.
-const headingHighlight = {
-  backgroundColor: 'rgba(59, 130, 246, 0.18)', // blue-500 at low opacity
-  borderRadius: '4px',
-  padding: '0.1rem 0.35rem',
-  display: 'inline-block',
-};
-
+// Assistant markdown — Claude.ai style: plain flowing text, no bubble, no heading
+// background/highlight, headings sit directly above their paragraph with minimal gap
+// so they read as part of the same block rather than a separated header.
 const markdownComponents = {
   p: ({ ...props }) => (
-    <p style={{ marginBottom: '0.5rem', lineHeight: '1.6', fontSize: '0.95rem', color: '#ececec' }} {...props} />
+    <p style={{ margin: '0 0 0.75rem 0', lineHeight: '1.65', fontSize: '0.95rem', color: '#e5e5e5' }} {...props} />
   ),
- h1: ({ ...props }) => (
-    <h1 style={{ color: '#3b82f6', fontWeight: 700, fontSize: '1.2rem', marginTop: '0.5rem', marginBottom: '0.15rem' }} {...props} />
+  h1: ({ ...props }) => (
+    <h1 style={{ color: '#f5f5f5', fontWeight: 600, fontSize: '1.15rem', margin: '1.25rem 0 0.5rem 0', lineHeight: '1.4' }} {...props} />
   ),
   h2: ({ ...props }) => (
-    <h2 style={{ color: '#3b82f6', fontWeight: 700, fontSize: '1.1rem', marginTop: '0.5rem', marginBottom: '0.15rem' }} {...props} />
+    <h2 style={{ color: '#f5f5f5', fontWeight: 600, fontSize: '1.05rem', margin: '1.1rem 0 0.4rem 0', lineHeight: '1.4' }} {...props} />
   ),
   h3: ({ ...props }) => (
-    <h3 style={{ color: '#3b82f6', fontWeight: 600, fontSize: '1.02rem', marginTop: '0.4rem', marginBottom: '0.15rem' }} {...props} />
+    <h3 style={{ color: '#f5f5f5', fontWeight: 600, fontSize: '0.98rem', margin: '1rem 0 0.35rem 0', lineHeight: '1.4' }} {...props} />
   ),
   ul: ({ ...props }) => (
-    <ul style={{ marginBottom: '0.5rem', marginTop: '0.2rem', paddingLeft: '1.15rem', color: '#ececec' }} {...props} />
+    <ul style={{ margin: '0 0 0.75rem 0', paddingLeft: '1.25rem', color: '#e5e5e5' }} {...props} />
   ),
   ol: ({ ...props }) => (
-    <ol style={{ marginBottom: '0.5rem', marginTop: '0.2rem', paddingLeft: '1.15rem', color: '#ececec' }} {...props} />
+    <ol style={{ margin: '0 0 0.75rem 0', paddingLeft: '1.25rem', color: '#e5e5e5' }} {...props} />
   ),
   li: ({ ...props }) => (
-    <li style={{ marginBottom: '0.25rem', lineHeight: '1.55', fontSize: '0.95rem', color: '#ececec' }} {...props} />
+    <li style={{ marginBottom: '0.3rem', lineHeight: '1.6', fontSize: '0.95rem', color: '#e5e5e5' }} {...props} />
   ),
   strong: ({ ...props }) => (
-    <strong style={{ color: '#ffffff', fontWeight: 700 }} {...props} />
+    <strong style={{ color: '#f5f5f5', fontWeight: 600 }} {...props} />
   ),
   em: ({ ...props }) => (
-    <em style={{ color: '#ececec' }} {...props} />
+    <em style={{ color: '#e5e5e5' }} {...props} />
   ),
   a: ({ ...props }) => (
-    <a style={{ color: '#3b82f6', textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer" {...props} />
+    <a style={{ color: '#3b82f6', textDecoration: 'underline', textUnderlineOffset: '2px' }} target="_blank" rel="noopener noreferrer" {...props} />
   ),
   blockquote: ({ ...props }) => (
-    <blockquote style={{ borderLeft: '3px solid rgba(255,255,255,0.25)', paddingLeft: '0.75rem', color: '#cbd5e1', margin: '0.4rem 0' }} {...props} />
+    <blockquote style={{ borderLeft: '3px solid rgba(255,255,255,0.2)', paddingLeft: '0.9rem', color: '#b8b8b8', margin: '0.5rem 0' }} {...props} />
   ),
   code: ({ ...props }) => (
-    <code style={{ backgroundColor: 'rgba(255,255,255,0.08)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', fontSize: '0.85em', color: '#ececec' }} {...props} />
+    <code style={{ backgroundColor: 'rgba(255,255,255,0.08)', padding: '0.15rem 0.35rem', borderRadius: '0.3rem', fontSize: '0.85em', color: '#e5e5e5', fontFamily: 'ui-monospace, monospace' }} {...props} />
   ),
   pre: ({ ...props }) => (
-    <pre style={{ backgroundColor: 'rgba(255,255,255,0.06)', padding: '0.85rem', borderRadius: '0.5rem', overflow: 'auto', color: '#ececec' }} {...props} />
+    <pre style={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', padding: '1rem', borderRadius: '0.6rem', overflow: 'auto', color: '#e5e5e5', margin: '0.5rem 0 0.75rem 0' }} {...props} />
   ),
 };
 
-// User bubble keeps the same components, but text stays white — kept separate
-// so tweaking assistant text color never affects the bubble.
+// User bubble markdown — text stays pure white, otherwise same rhythm as assistant text
 const userMarkdownComponents = {
   ...markdownComponents,
   p: ({ ...props }) => (
-    <p style={{ marginBottom: '0.5rem', lineHeight: '1.6', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
+    <p style={{ margin: '0 0 0.5rem 0', lineHeight: '1.6', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
   ),
   li: ({ ...props }) => (
     <li style={{ marginBottom: '0.25rem', lineHeight: '1.55', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
+  ),
+  strong: ({ ...props }) => (
+    <strong style={{ color: '#ffffff', fontWeight: 700 }} {...props} />
   ),
 };
 
@@ -264,12 +257,12 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
       )}
 
       {messages.length > 0 && (
-        <div className="max-w-3xl mx-auto px-2 sm:px-6 py-6 space-y-8">
+        <div className="max-w-3xl mx-auto px-2 sm:px-6 py-6 space-y-6">
           {messages.map((message) => {
             const isUser = message.type === 'user';
             const displayContent = isUser ? message.content : parseAndStyleLegalText(message.content);
 
-            // USER MESSAGE: right-aligned bubble, blue gradient, avatar on the far right — unchanged
+            // USER MESSAGE: right-aligned bubble — unchanged in concept, same treatment as before
             if (isUser) {
               return (
                 <div key={message.id} className="flex justify-end items-end gap-1.5 sm:gap-2 group">
@@ -319,13 +312,15 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
               );
             }
 
-            // ASSISTANT MESSAGE: plain text, no bubble, no background — ChatGPT style
+            // ASSISTANT MESSAGE: plain text, no bubble, no background — Claude.ai style
             return (
-              <div key={message.id} className="flex items-start gap-2 sm:gap-3 group">
-                <NomosAvatar />
+              <div key={message.id} className="flex items-start gap-2.5 sm:gap-3 group">
+                <div className="pt-0.5">
+                  <NomosAvatar />
+                </div>
 
-                <div className="max-w-[90%] sm:max-w-[85%] flex flex-col items-start gap-1 min-w-0 pt-1">
-                  <div className="prose prose-sm max-w-none break-words prose-invert">
+                <div className="max-w-[92%] sm:max-w-[88%] flex flex-col items-start gap-1 min-w-0">
+                  <div className="max-w-none break-words">
                     <ReactMarkdown components={markdownComponents} rehypePlugins={[rehypeRaw]}>
                       {displayContent}
                     </ReactMarkdown>
@@ -355,14 +350,16 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
             );
           })}
 
-          {/* Loading Indicator — kept as a subtle inline dots row, no bubble, to match plain assistant style */}
+          {/* Loading Indicator — plain dots, no bubble */}
           {isLoading && (
-            <div className="flex items-start gap-2 sm:gap-3">
-              <NomosAvatar />
-              <div className="flex items-center gap-1 pt-2.5">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="flex items-start gap-2.5 sm:gap-3">
+              <div className="pt-0.5">
+                <NomosAvatar />
+              </div>
+              <div className="flex items-center gap-1 pt-2">
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           )}
