@@ -127,14 +127,14 @@ const markdownComponents = {
   p: ({ ...props }) => (
     <p style={{ marginBottom: '0.5rem', lineHeight: '1.6', fontSize: '0.95rem', color: '#ececec' }} {...props} />
   ),
-  h1: ({ ...props }) => (
-    <h1 style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.2rem', marginTop: '0.5rem', marginBottom: '0.4rem', ...headingHighlight }} {...props} />
+ h1: ({ ...props }) => (
+    <h1 style={{ color: '#3b82f6', fontWeight: 700, fontSize: '1.2rem', marginTop: '0.5rem', marginBottom: '0.15rem' }} {...props} />
   ),
   h2: ({ ...props }) => (
-    <h2 style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.1rem', marginTop: '0.5rem', marginBottom: '0.4rem', ...headingHighlight }} {...props} />
+    <h2 style={{ color: '#3b82f6', fontWeight: 700, fontSize: '1.1rem', marginTop: '0.5rem', marginBottom: '0.15rem' }} {...props} />
   ),
   h3: ({ ...props }) => (
-    <h3 style={{ color: '#ffffff', fontWeight: 600, fontSize: '1.02rem', marginTop: '0.4rem', marginBottom: '0.4rem', ...headingHighlight }} {...props} />
+    <h3 style={{ color: '#3b82f6', fontWeight: 600, fontSize: '1.02rem', marginTop: '0.4rem', marginBottom: '0.15rem' }} {...props} />
   ),
   ul: ({ ...props }) => (
     <ul style={{ marginBottom: '0.5rem', marginTop: '0.2rem', paddingLeft: '1.15rem', color: '#ececec' }} {...props} />
@@ -152,7 +152,7 @@ const markdownComponents = {
     <em style={{ color: '#ececec' }} {...props} />
   ),
   a: ({ ...props }) => (
-    <a style={{ color: '#60a5fa', textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer" {...props} />
+    <a style={{ color: '#3b82f6', textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer" {...props} />
   ),
   blockquote: ({ ...props }) => (
     <blockquote style={{ borderLeft: '3px solid rgba(255,255,255,0.25)', paddingLeft: '0.75rem', color: '#cbd5e1', margin: '0.4rem 0' }} {...props} />
