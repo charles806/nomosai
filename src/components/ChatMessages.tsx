@@ -11,6 +11,9 @@ interface ChatMessagesProps {
   onPromptSelect?: (prompt: string) => void;
 }
 
+// Blue accent used for headings + highlighted legal terms (matches the reference screenshot)
+const HIGHLIGHT_BLUE = '#5b9bf5';
+
 const parseAndStyleLegalText = (text: string): string => {
   const casePattern = /([A-Z][a-zA-Z\s&.']+\s+v\.?\s+[A-Z][a-zA-Z\s&.']+\s*\(\d{4}\)[^\n.]*(?:NWLR|SC|LPELR|NCLR|All NLR|SCNLR|NMLR)[^\n.]*)/g;
   const sectionPattern = /(Section\s+\d+[A-Za-z]?(?:\(\d+\))?(?:\([a-z]\))?(?:\s+of\s+(?:the\s+)?[A-Za-z\s\d&]+(?:Act|Constitution|Code|CAMA)(?:\s+\d{4})?)?)/gi;
@@ -18,24 +21,26 @@ const parseAndStyleLegalText = (text: string): string => {
   const actPattern = /((?:Criminal|Penal|Evidence|Land\s+Use|Companies\s+and\s+Allied\s+Matters|Administration\s+of\s+Criminal\s+Justice|Interpretation|Matrimonial\s+Causes|Labour|Arbitration\s+and\s+Conciliation|Sheriffs\s+and\s+Civil\s+Process|Federal\s+High\s+Court|High\s+Court|Magistrate|Customary\s+Court)\s+(?:Code|Act|Law)(?:\s+\d{4})?)/gi;
   const recognizedLawPattern = /\b(Nigerian\s+Constitution|Constitution\s+of\s+the\s+Federal\s+Republic\s+of\s+Nigeria|CAMA|Companies\s+Act|Criminal\s+Code|Penal\s+Code|Evidence\s+Act|Supreme\s+Court\s+Act|Court\s+of\s+Appeal\s+Act|Federal\s+High\s+Court\s+Act|ACJA|Administration\s+of\s+Criminal\s+Justice\s+Act)\b/gi;
   const headingPattern = /^(#{1,6}\s+.+)$/gm;
-  const colonHeadingPattern = /^([A-Z][A-Za-z\s]+:)$/gm;
+  const colonHeadingPattern = /^([A-Z][A-Za-z\s,]+:)$/gm;
   const titleCasePattern = /^([A-Z][A-Z\s]+)$/gm;
   const maximPattern = /\b(ignorantia juris non excusat|nemo dat quod non habet|actus reus|mens rea|audi alteram partem|res ipsa loquitur|caveat emptor|pacta sunt servanda|ultra vires|in terrorem|ex parte|de facto|de jure|inter alia|ipso facto|per se|vis-à-vis|quantum meruit|sui generis|mutatis mutandis|functus officio|stare decisis|ratio decidendi|obiter dicta|ejusdem generis|expressio unius|noscitur a sociis)\b/gi;
-  const legalTermsPattern = /\b(plaintiff|defendant|appellant|respondent|petitioner|claimant|judgment|ruling|order|decree|injunction|damages|liability|negligence|breach|contract|tort|remedy|precedent|burden of proof|prima facie|res judicata|bona fide|locus standi|certiorari|mandamus|prohibition|habeas corpus|jurisdiction|evidence|testimony|witness|prosecution|defense|conviction|acquittal|sentence|appeal|motion|hearing|trial|court|judge|jury|counsel|barrister|solicitor|attorney|indictment|arraignment|bail|probation|parole|affidavit|deposition|discovery|subpoena|writ|estoppel|consideration|capacity|duress|undue influence|misrepresentation|fraud|statute|ordinance|regulation|directive|proviso|schedule|subsection|paragraph|clause)\b/gi;
+  const legalTermsPattern = /\b(plaintiff|defendant|appellant|respondent|petitioner|claimant|judgment|ruling|order|decree|injunction|damages|liability|negligence|breach|contract|tort|remedy|precedent|burden of proof|prima facie|res judicata|bona fide|locus standi|certiorari|mandamus|prohibition|habeas corpus|jurisdiction|evidence|testimony|witness|prosecution|defense|conviction|acquittal|sentence|appeal|motion|hearing|trial|court|judge|jury|counsel|barrister|solicitor|attorney|indictment|arraignment|bail|probation|parole|affidavit|deposition|discovery|subpoena|writ|estoppel|consideration|capacity|duress|undue influence|misrepresentation|fraud|statute|ordinance|regulation|directive|proviso|schedule|subsection|paragraph|clause|civil matter|criminal matter|criminal offence|obtaining by false pretences|cheating|arrest)\b/gi;
   const examplePattern = /\b(For example|For instance|Example|Instance|Illustration|Case in point|Namely|Such as|Including|e\.g\.|i\.e\.)\b/gi;
 
   let styledText = text;
-  styledText = styledText.replace(headingPattern, (match) => match.replace(/(#{1,6}\s+)(.+)/, '$1<span style="color: #ffffff; font-weight: 700;">$2</span>'));
-  styledText = styledText.replace(colonHeadingPattern, (match) => `<span style="color: #ffffff; font-weight: 700;">${match}</span>`);
-  styledText = styledText.replace(titleCasePattern, (match) => `<span style="color: #ffffff; font-weight: 700;">${match}</span>`);
-  styledText = styledText.replace(casePattern, (match) => `<span style="color: #ffffff; font-weight: 600;">${match}</span>`);
-  styledText = styledText.replace(sectionPattern, (match) => `<span style="color: #ffffff; font-weight: 600;">${match}</span>`);
-  styledText = styledText.replace(constitutionPattern, (match) => `<span style="color: #ffffff; font-weight: 600;">${match}</span>`);
-  styledText = styledText.replace(actPattern, (match) => `<span style="color: #ffffff; font-weight: 600;">${match}</span>`);
-  styledText = styledText.replace(recognizedLawPattern, (match) => `<span style="color: #ffffff; font-weight: 600;">${match}</span>`);
-  styledText = styledText.replace(maximPattern, (match) => `<span style="color: #ffffff; font-style: italic; font-weight: 500;">${match}</span>`);
-  styledText = styledText.replace(examplePattern, (match) => `<span style="color: #ffffff; font-weight: 600;">${match}</span>`);
-  styledText = styledText.replace(legalTermsPattern, (match) => `<span style="color: #ffffff; font-weight: 500;">${match}</span>`);
+  // Headings get the bold blue heading treatment
+  styledText = styledText.replace(headingPattern, (match) => match.replace(/(#{1,6}\s+)(.+)/, `$1<span style="color: ${HIGHLIGHT_BLUE}; font-weight: 600;">$2</span>`));
+  styledText = styledText.replace(colonHeadingPattern, (match) => `<span style="color: ${HIGHLIGHT_BLUE}; font-weight: 600;">${match}</span>`);
+  styledText = styledText.replace(titleCasePattern, (match) => `<span style="color: ${HIGHLIGHT_BLUE}; font-weight: 600;">${match}</span>`);
+  // Critical/useful terms get the lighter blue inline highlight, like "civil matter" in the reference
+  styledText = styledText.replace(casePattern, (match) => `<span style="color: ${HIGHLIGHT_BLUE}; font-weight: 500;">${match}</span>`);
+  styledText = styledText.replace(sectionPattern, (match) => `<span style="color: ${HIGHLIGHT_BLUE}; font-weight: 500;">${match}</span>`);
+  styledText = styledText.replace(constitutionPattern, (match) => `<span style="color: ${HIGHLIGHT_BLUE}; font-weight: 500;">${match}</span>`);
+  styledText = styledText.replace(actPattern, (match) => `<span style="color: ${HIGHLIGHT_BLUE}; font-weight: 500;">${match}</span>`);
+  styledText = styledText.replace(recognizedLawPattern, (match) => `<span style="color: ${HIGHLIGHT_BLUE}; font-weight: 500;">${match}</span>`);
+  styledText = styledText.replace(maximPattern, (match) => `<span style="color: ${HIGHLIGHT_BLUE}; font-style: italic; font-weight: 500;">${match}</span>`);
+  styledText = styledText.replace(examplePattern, (match) => `<span style="color: ${HIGHLIGHT_BLUE}; font-weight: 500;">${match}</span>`);
+  styledText = styledText.replace(legalTermsPattern, (match) => `<span style="color: ${HIGHLIGHT_BLUE}; font-weight: 500;">${match}</span>`);
   return styledText;
 };
 
@@ -111,21 +116,20 @@ function formatTime(timestamp: Date): string {
   }
 }
 
-// Assistant markdown — Claude.ai style: plain flowing text, no bubble, no heading
-// background/highlight, headings sit directly above their paragraph with minimal gap
-// so they read as part of the same block rather than a separated header.
+// Assistant markdown — plain flowing text, no bubble. Headings use the same blue
+// accent as the inline-highlighted legal terms so the two feel like one system.
 const markdownComponents = {
   p: ({ ...props }) => (
     <p style={{ margin: '0 0 0.75rem 0', lineHeight: '1.65', fontSize: '0.95rem', color: '#e5e5e5' }} {...props} />
   ),
   h1: ({ ...props }) => (
-    <h1 style={{ color: '#f5f5f5', fontWeight: 600, fontSize: '1.15rem', margin: '1.25rem 0 0.5rem 0', lineHeight: '1.4' }} {...props} />
+    <h1 style={{ color: HIGHLIGHT_BLUE, fontWeight: 600, fontSize: '1.15rem', margin: '1.25rem 0 0.5rem 0', lineHeight: '1.4' }} {...props} />
   ),
   h2: ({ ...props }) => (
-    <h2 style={{ color: '#f5f5f5', fontWeight: 600, fontSize: '1.05rem', margin: '1.1rem 0 0.4rem 0', lineHeight: '1.4' }} {...props} />
+    <h2 style={{ color: HIGHLIGHT_BLUE, fontWeight: 600, fontSize: '1.05rem', margin: '1.1rem 0 0.4rem 0', lineHeight: '1.4' }} {...props} />
   ),
   h3: ({ ...props }) => (
-    <h3 style={{ color: '#f5f5f5', fontWeight: 600, fontSize: '0.98rem', margin: '1rem 0 0.35rem 0', lineHeight: '1.4' }} {...props} />
+    <h3 style={{ color: HIGHLIGHT_BLUE, fontWeight: 600, fontSize: '0.98rem', margin: '1rem 0 0.35rem 0', lineHeight: '1.4' }} {...props} />
   ),
   ul: ({ ...props }) => (
     <ul style={{ margin: '0 0 0.75rem 0', paddingLeft: '1.25rem', color: '#e5e5e5' }} {...props} />
@@ -143,7 +147,7 @@ const markdownComponents = {
     <em style={{ color: '#e5e5e5' }} {...props} />
   ),
   a: ({ ...props }) => (
-    <a style={{ color: '#3b82f6', textDecoration: 'underline', textUnderlineOffset: '2px' }} target="_blank" rel="noopener noreferrer" {...props} />
+    <a style={{ color: HIGHLIGHT_BLUE, textDecoration: 'underline', textUnderlineOffset: '2px' }} target="_blank" rel="noopener noreferrer" {...props} />
   ),
   blockquote: ({ ...props }) => (
     <blockquote style={{ borderLeft: '3px solid rgba(255,255,255,0.2)', paddingLeft: '0.9rem', color: '#b8b8b8', margin: '0.5rem 0' }} {...props} />
@@ -257,12 +261,12 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
       )}
 
       {messages.length > 0 && (
-        <div className="max-w-3xl mx-auto px-2 sm:px-6 py-6 space-y-6">
+        <div className="max-w-3xl mx-auto px-2 sm:px-6 py-6 space-y-8">
           {messages.map((message) => {
             const isUser = message.type === 'user';
             const displayContent = isUser ? message.content : parseAndStyleLegalText(message.content);
 
-            // USER MESSAGE: right-aligned bubble — unchanged in concept, same treatment as before
+            // USER MESSAGE: right-aligned bubble — unchanged
             if (isUser) {
               return (
                 <div key={message.id} className="flex justify-end items-end gap-1.5 sm:gap-2 group">
@@ -312,14 +316,15 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
               );
             }
 
-            // ASSISTANT MESSAGE: plain text, no bubble, no background — Claude.ai style
+            // ASSISTANT MESSAGE: plain text, no bubble, no background — nudged left,
+            // narrower max-width so it doesn't run under the user bubble's column.
             return (
-              <div key={message.id} className="flex items-start gap-2.5 sm:gap-3 group">
+              <div key={message.id} className="flex items-start gap-2 sm:gap-2.5 group -ml-0.5 sm:ml-0">
                 <div className="pt-0.5">
                   <NomosAvatar />
                 </div>
 
-                <div className="max-w-[92%] sm:max-w-[88%] flex flex-col items-start gap-1 min-w-0">
+                <div className="max-w-[86%] sm:max-w-[78%] flex flex-col items-start gap-1 min-w-0">
                   <div className="max-w-none break-words">
                     <ReactMarkdown components={markdownComponents} rehypePlugins={[rehypeRaw]}>
                       {displayContent}
@@ -352,7 +357,7 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
 
           {/* Loading Indicator — plain dots, no bubble */}
           {isLoading && (
-            <div className="flex items-start gap-2.5 sm:gap-3">
+            <div className="flex items-start gap-2 sm:gap-2.5">
               <div className="pt-0.5">
                 <NomosAvatar />
               </div>
