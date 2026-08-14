@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, Plus, FileText, Award, User, Trash2, Settings, LogOut, ChevronUp, CreditCard, Tag } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { Conversation } from '../types/chat';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -135,14 +135,14 @@ export function ChatSidebar({
           <span>Settings</span>
         </button>
         <Link
-          href="/PaymentPage"
+          to="/payment"
           className="w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-[#212121] rounded-lg transition-all text-xs"
         >
           <CreditCard className="h-3.5 w-3.5" />
           <span>Payment</span>
         </Link>
         <Link
-          href="/PricingPage"
+          to="/pricing"
           className="w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-[#212121] rounded-lg transition-all text-xs"
         >
           <Tag className="h-3.5 w-3.5" />
