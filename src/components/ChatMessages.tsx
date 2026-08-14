@@ -112,11 +112,12 @@ function formatTime(timestamp: Date): string {
   }
 }
 
-// Shared markdown component overrides — all text rendered pure white,
-// which works on both the blue user bubble and the dark AI bubble.
-// Headings get a soft highlighter background so they stand out at a glance.
+// Shared markdown component overrides.
+// User bubble text stays white (readable on the blue gradient).
+// Assistant text is plain light gray/white on transparent background, ChatGPT-style.
+// Headings get a blue highlighter background so they stand out at a glance.
 const headingHighlight = {
-  backgroundColor: 'rgba(96, 165, 250, 0.18)',
+  backgroundColor: 'rgba(59, 130, 246, 0.18)', // blue-500 at low opacity
   borderRadius: '4px',
   padding: '0.1rem 0.35rem',
   display: 'inline-block',
@@ -124,7 +125,7 @@ const headingHighlight = {
 
 const markdownComponents = {
   p: ({ ...props }) => (
-    <p style={{ marginBottom: '0.5rem', lineHeight: '1.6', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
+    <p style={{ marginBottom: '0.5rem', lineHeight: '1.6', fontSize: '0.95rem', color: '#ececec' }} {...props} />
   ),
   h1: ({ ...props }) => (
     <h1 style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.2rem', marginTop: '0.5rem', marginBottom: '0.4rem', ...headingHighlight }} {...props} />
@@ -136,31 +137,43 @@ const markdownComponents = {
     <h3 style={{ color: '#ffffff', fontWeight: 600, fontSize: '1.02rem', marginTop: '0.4rem', marginBottom: '0.4rem', ...headingHighlight }} {...props} />
   ),
   ul: ({ ...props }) => (
-    <ul style={{ marginBottom: '0.5rem', marginTop: '0.2rem', paddingLeft: '1.15rem', color: '#ffffff' }} {...props} />
+    <ul style={{ marginBottom: '0.5rem', marginTop: '0.2rem', paddingLeft: '1.15rem', color: '#ececec' }} {...props} />
   ),
   ol: ({ ...props }) => (
-    <ol style={{ marginBottom: '0.5rem', marginTop: '0.2rem', paddingLeft: '1.15rem', color: '#ffffff' }} {...props} />
+    <ol style={{ marginBottom: '0.5rem', marginTop: '0.2rem', paddingLeft: '1.15rem', color: '#ececec' }} {...props} />
   ),
   li: ({ ...props }) => (
-    <li style={{ marginBottom: '0.25rem', lineHeight: '1.55', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
+    <li style={{ marginBottom: '0.25rem', lineHeight: '1.55', fontSize: '0.95rem', color: '#ececec' }} {...props} />
   ),
   strong: ({ ...props }) => (
     <strong style={{ color: '#ffffff', fontWeight: 700 }} {...props} />
   ),
   em: ({ ...props }) => (
-    <em style={{ color: '#ffffff' }} {...props} />
+    <em style={{ color: '#ececec' }} {...props} />
   ),
   a: ({ ...props }) => (
-    <a style={{ color: '#bfdbfe', textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer" {...props} />
+    <a style={{ color: '#60a5fa', textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer" {...props} />
   ),
   blockquote: ({ ...props }) => (
-    <blockquote style={{ borderLeft: '3px solid rgba(255,255,255,0.35)', paddingLeft: '0.75rem', color: '#f1f5f9', margin: '0.4rem 0' }} {...props} />
+    <blockquote style={{ borderLeft: '3px solid rgba(255,255,255,0.25)', paddingLeft: '0.75rem', color: '#cbd5e1', margin: '0.4rem 0' }} {...props} />
   ),
   code: ({ ...props }) => (
-    <code style={{ backgroundColor: 'rgba(0,0,0,0.25)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', fontSize: '0.85em', color: '#ffffff' }} {...props} />
+    <code style={{ backgroundColor: 'rgba(255,255,255,0.08)', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', fontSize: '0.85em', color: '#ececec' }} {...props} />
   ),
   pre: ({ ...props }) => (
-    <pre style={{ backgroundColor: 'rgba(0,0,0,0.35)', padding: '0.85rem', borderRadius: '0.5rem', overflow: 'auto', color: '#ffffff' }} {...props} />
+    <pre style={{ backgroundColor: 'rgba(255,255,255,0.06)', padding: '0.85rem', borderRadius: '0.5rem', overflow: 'auto', color: '#ececec' }} {...props} />
+  ),
+};
+
+// User bubble keeps the same components, but text stays white — kept separate
+// so tweaking assistant text color never affects the bubble.
+const userMarkdownComponents = {
+  ...markdownComponents,
+  p: ({ ...props }) => (
+    <p style={{ marginBottom: '0.5rem', lineHeight: '1.6', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
+  ),
+  li: ({ ...props }) => (
+    <li style={{ marginBottom: '0.25rem', lineHeight: '1.55', fontSize: '0.95rem', color: '#ffffff' }} {...props} />
   ),
 };
 
@@ -251,12 +264,12 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
       )}
 
       {messages.length > 0 && (
-        <div className="max-w-3xl mx-auto px-2 sm:px-6 py-6 space-y-4">
+        <div className="max-w-3xl mx-auto px-2 sm:px-6 py-6 space-y-8">
           {messages.map((message) => {
             const isUser = message.type === 'user';
             const displayContent = isUser ? message.content : parseAndStyleLegalText(message.content);
 
-            // USER MESSAGE: right-aligned bubble, blue gradient, avatar on the far right
+            // USER MESSAGE: right-aligned bubble, blue gradient, avatar on the far right — unchanged
             if (isUser) {
               return (
                 <div key={message.id} className="flex justify-end items-end gap-1.5 sm:gap-2 group">
@@ -283,7 +296,7 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
                       }}
                     >
                       <div className="prose prose-sm max-w-none break-words prose-invert">
-                        <ReactMarkdown components={markdownComponents}>
+                        <ReactMarkdown components={userMarkdownComponents}>
                           {displayContent}
                         </ReactMarkdown>
                       </div>
@@ -306,30 +319,19 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
               );
             }
 
-            // ASSISTANT MESSAGE: left-aligned bubble, dark surface, avatar on the far left
+            // ASSISTANT MESSAGE: plain text, no bubble, no background — ChatGPT style
             return (
-              <div
-                key={message.id}
-                className="flex items-end gap-1.5 sm:gap-2 group -ml-1 sm:ml-0"
-              >
+              <div key={message.id} className="flex items-start gap-2 sm:gap-3 group">
                 <NomosAvatar />
 
-                <div className="max-w-[85%] sm:max-w-[75%] flex flex-col items-start gap-1 min-w-0">
-                  <div
-                    className="px-4 py-2.5 shadow-md min-w-0"
-                    style={{
-                      backgroundColor: '#1f2937',
-                      borderRadius: '18px 18px 18px 4px',
-                    }}
-                  >
-                    <div className="prose prose-sm max-w-none break-words prose-invert">
-                      <ReactMarkdown components={markdownComponents} rehypePlugins={[rehypeRaw]}>
-                        {displayContent}
-                      </ReactMarkdown>
-                    </div>
+                <div className="max-w-[90%] sm:max-w-[85%] flex flex-col items-start gap-1 min-w-0 pt-1">
+                  <div className="prose prose-sm max-w-none break-words prose-invert">
+                    <ReactMarkdown components={markdownComponents} rehypePlugins={[rehypeRaw]}>
+                      {displayContent}
+                    </ReactMarkdown>
                   </div>
 
-                  <div className="flex items-center gap-2 pl-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => handleCopy(message.content, message.id)}
                       className="flex items-center gap-1 text-xs text-gray-500 hover:text-white transition-colors"
@@ -353,19 +355,14 @@ export function ChatMessages({ messages, isLoading, onPromptSelect }: ChatMessag
             );
           })}
 
-          {/* Loading Indicator */}
+          {/* Loading Indicator — kept as a subtle inline dots row, no bubble, to match plain assistant style */}
           {isLoading && (
-            <div className="flex items-end gap-1.5 sm:gap-2 -ml-1 sm:ml-0">
+            <div className="flex items-start gap-2 sm:gap-3">
               <NomosAvatar />
-              <div
-                className="flex items-center gap-3 px-4 py-3 shadow-md"
-                style={{ backgroundColor: '#1f2937', borderRadius: '18px 18px 18px 4px' }}
-              >
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
+              <div className="flex items-center gap-1 pt-2.5">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           )}
