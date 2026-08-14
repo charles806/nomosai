@@ -193,11 +193,20 @@ export function useSubscription() {
                         setSupabaseFailed(true);
                     } else {
                         setProfile(created);
-                        setLocalDailyCountState(created.daily_message_count ?? 0);
-                        setLocalDailyCount(created.daily_message_count ?? 0);
-                        setLocalResetAtState(created.daily_reset_at);
-                        setLocalTotalCount(created.total_messages ?? 0);
-                        setLocalTotalMessages(created.total_messages ?? 0);
+                        // Only trust DB values that actually came back — a missing
+                        // column or partial row must not silently zero the local
+                        // fallback counters.
+                        if (created.daily_message_count !== null && created.daily_message_count !== undefined) {
+                            setLocalDailyCountState(created.daily_message_count);
+                            setLocalDailyCount(created.daily_message_count);
+                        }
+                        if (created.daily_reset_at) {
+                            setLocalResetAtState(created.daily_reset_at);
+                        }
+                        if (created.total_messages !== null && created.total_messages !== undefined) {
+                            setLocalTotalCount(created.total_messages);
+                            setLocalTotalMessages(created.total_messages);
+                        }
                     }
                 } else if (error) {
                     console.error('[useSubscription] Failed to fetch profile:', error);
@@ -207,11 +216,20 @@ export function useSubscription() {
                     if (cancelled) return;
 
                     setProfile(freshProfile);
-                    setLocalDailyCountState(freshProfile.daily_message_count ?? 0);
-                    setLocalDailyCount(freshProfile.daily_message_count ?? 0);
-                    setLocalResetAtState(freshProfile.daily_reset_at);
-                    setLocalTotalCount(freshProfile.total_messages ?? 0);
-                    setLocalTotalMessages(freshProfile.total_messages ?? 0);
+                    // Same guard as above: undefined/null DB fields (e.g. from a
+                    // migration that hasn't run yet, or a failed update) must fall
+                    // through to the existing local state, not overwrite it.
+                    if (freshProfile.daily_message_count !== null && freshProfile.daily_message_count !== undefined) {
+                        setLocalDailyCountState(freshProfile.daily_message_count);
+                        setLocalDailyCount(freshProfile.daily_message_count);
+                    }
+                    if (freshProfile.daily_reset_at) {
+                        setLocalResetAtState(freshProfile.daily_reset_at);
+                    }
+                    if (freshProfile.total_messages !== null && freshProfile.total_messages !== undefined) {
+                        setLocalTotalCount(freshProfile.total_messages);
+                        setLocalTotalMessages(freshProfile.total_messages);
+                    }
 
                     fetchUserBadges();
                 }
