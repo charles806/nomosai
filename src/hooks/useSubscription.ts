@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -27,6 +27,7 @@ export interface Badge {
 
 const DAILY_MESSAGE_LIMIT = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const BADGE_THRESHOLDS = [20, 50, 100, 200, 500];
 
 const LOCAL_DAILY_COUNT_KEY = 'nomos_daily_msg_count';
 const LOCAL_DAILY_RESET_KEY = 'nomos_daily_reset_at';
@@ -37,6 +38,8 @@ function isResetDue(resetAt: string | null): boolean {
     return Date.now() - new Date(resetAt).getTime() >= DAY_MS;
 }
 
+// Pure read — does NOT write to localStorage. Callers that need the
+// reset-or-initialize behavior should use ensureLocalResetAt() instead.
 function getLocalDailyCount(): number {
     try {
         if (isResetDue(localStorage.getItem(LOCAL_DAILY_RESET_KEY))) return 0;
@@ -46,7 +49,10 @@ function getLocalDailyCount(): number {
     }
 }
 
-function getLocalResetAt(): string {
+// Side-effecting: initializes/rolls over the local reset timestamp if it's
+// missing or stale. Named to make the write-on-read behavior explicit, since
+// a plain "getX" name previously hid this from callers.
+function ensureLocalResetAt(): string {
     try {
         const stored = localStorage.getItem(LOCAL_DAILY_RESET_KEY);
         if (stored && !isResetDue(stored)) return stored;
@@ -87,8 +93,14 @@ export function useSubscription() {
     const [isLoading, setIsLoading] = useState(true);
     const [supabaseFailed, setSupabaseFailed] = useState(false);
     const [localDailyCount, setLocalDailyCountState] = useState(getLocalDailyCount);
-    const [localResetAt, setLocalResetAtState] = useState(getLocalResetAt);
+    const [localResetAt, setLocalResetAtState] = useState(ensureLocalResetAt);
     const [localTotalCount, setLocalTotalCount] = useState(getLocalTotalMessages);
+
+    // Tracks in-flight increments so a second increment fired before the
+    // first Supabase round-trip resolves reads the *pending* value instead
+    // of stale profile state — shrinks (does not eliminate) the race window
+    // from issue #2. Real fix is an atomic DB-side RPC — see incrementMessageCount.
+    const pendingCountsRef = useRef<{ daily: number; total: number; resetAt: string } | null>(null);
 
     // Fetch user badges
     const fetchUserBadges = useCallback(async () => {
@@ -189,8 +201,30 @@ export function useSubscription() {
                     if (cancelled) return;
 
                     if (insertError) {
+                        // Previously: silently fell back to local-only tracking
+                        // with no retry and no user-facing signal, so the
+                        // session's message counts never reached the DB.
+                        // We still fall back (app must stay usable), but now
+                        // we surface it in a way callers can react to, and we
+                        // retry once after a short delay in case it was a
+                        // transient network/DB blip.
                         console.error('[useSubscription] Failed to create profile:', insertError);
                         setSupabaseFailed(true);
+
+                        setTimeout(async () => {
+                            if (cancelled) return;
+                            const { data: retried, error: retryError } = await supabase
+                                .from('user_profiles')
+                                .insert(newProfile)
+                                .select()
+                                .single();
+
+                            if (!cancelled && !retryError && retried) {
+                                setSupabaseFailed(false);
+                                setProfile(retried);
+                                fetchUserBadges();
+                            }
+                        }, 3000);
                     } else {
                         setProfile(created);
                         // Only trust DB values that actually came back — a missing
@@ -252,6 +286,15 @@ export function useSubscription() {
     const subscriptionStatus = profile?.subscription_status ?? 'free_trial';
     const subscriptionPlan = profile?.subscription_plan ?? null;
 
+    // NOTE (issue #1): this check is enforced client-side only, using values
+    // that can originate from localStorage. A user can clear
+    // nomos_daily_msg_count / nomos_daily_reset_at in devtools to bypass the
+    // free-trial limit. This cannot be fully fixed from this file — real
+    // enforcement requires the server (an RPC or edge function) to reject/
+    // ignore increments once the daily cap is hit, rather than trusting the
+    // client's count. TODO: replace with a server-validated check, e.g. by
+    // having incrementMessageCount's RPC return whether the send was allowed
+    // and short-circuiting the UI on `allowed: false`.
     const canSendMessage =
         isLoading ||
         subscriptionStatus === 'active' ||
@@ -264,9 +307,20 @@ export function useSubscription() {
     // Milliseconds until the current window resets — for display purposes
     const msUntilReset = Math.max(0, DAY_MS - (Date.now() - new Date(dailyResetAt).getTime()));
 
-    // Check and award badges
-    const checkBadges = useCallback(async (newTotal: number) => {
+    // Check and award badges. Previously only fired on an exact count match,
+    // so any skipped/out-of-sync total (e.g. from the increment race in
+    // issue #2, or a manual DB correction) meant the badge was missed
+    // forever. Now fires whenever newTotal has crossed a threshold that
+    // previousTotal hadn't reached yet, and lets the DB-side RPC (which
+    // should already be idempotent per user+badge) be the source of truth
+    // on whether it's actually newly earned.
+    const checkBadges = useCallback(async (previousTotal: number, newTotal: number) => {
         if (!user || supabaseFailed) return;
+
+        const crossedThreshold = BADGE_THRESHOLDS.some(
+            (threshold) => previousTotal < threshold && newTotal >= threshold
+        );
+        if (!crossedThreshold) return;
 
         try {
             const { data, error } = await supabase.rpc('check_and_award_badges', {
@@ -278,6 +332,7 @@ export function useSubscription() {
                 const newBadges = data as any[];
                 if (newBadges.length > 0) {
                     setNewBadge({
+                        id: newBadges[0].badge_id ?? newBadges[0].id,
                         name: newBadges[0].badge_name,
                         description: newBadges[0].badge_description,
                         icon: newBadges[0].badge_icon,
@@ -294,14 +349,35 @@ export function useSubscription() {
     const incrementMessageCount = useCallback(async () => {
         if (!user) return;
 
-        // Local counters always update as a fallback/optimistic layer
-        const dueForReset = isResetDue(dailyResetAt);
-        const currentDaily = dueForReset ? 0 : (profile?.daily_message_count ?? localDailyCount);
-        const currentTotal = profile?.total_messages ?? localTotalCount;
-        const newDaily = currentDaily + 1;
-        const newTotal = currentTotal + 1;
+        // NOTE (issue #2): this is a read-then-write increment. If two
+        // increments overlap (rapid sends, multiple tabs), both can read the
+        // same starting count and the second write silently clobbers the
+        // first, losing a count. pendingCountsRef narrows this window by
+        // chaining off the last *requested* value in this tab rather than
+        // the last *confirmed* profile state, but it cannot fix cross-tab or
+        // cross-device races. TODO: replace this block with a single
+        // server-side RPC, e.g.:
+        //   supabase.rpc('increment_message_count', { p_user_id: user.id })
+        // that does `daily_message_count = daily_message_count + 1` and the
+        // reset-if-due logic atomically in SQL, and returns the authoritative
+        // new counts (and ideally an `allowed` boolean for issue #1).
+        const dueForReset = isResetDue(pendingCountsRef.current?.resetAt ?? dailyResetAt);
+        const baseDaily = dueForReset
+            ? 0
+            : (pendingCountsRef.current?.daily ?? profile?.daily_message_count ?? localDailyCount);
+        const baseTotal = pendingCountsRef.current?.total ?? profile?.total_messages ?? localTotalCount;
+
+        const newDaily = baseDaily + 1;
+        const newTotal = baseTotal + 1;
         const nowIso = new Date().toISOString();
 
+        pendingCountsRef.current = {
+            daily: newDaily,
+            total: newTotal,
+            resetAt: dueForReset ? nowIso : (pendingCountsRef.current?.resetAt ?? dailyResetAt),
+        };
+
+        // Local counters always update as a fallback/optimistic layer
         setLocalDailyCountState(newDaily);
         setLocalDailyCount(newDaily);
         if (dueForReset) {
@@ -328,6 +404,12 @@ export function useSubscription() {
 
             if (error) {
                 console.error('[useSubscription] Failed to increment message count:', error);
+                // Roll back the pending marker so the next call re-reads from
+                // confirmed profile state instead of building on a count that
+                // never made it to the DB.
+                if (pendingCountsRef.current?.total === newTotal) {
+                    pendingCountsRef.current = null;
+                }
             } else {
                 setProfile((prev) =>
                     prev
@@ -340,10 +422,18 @@ export function useSubscription() {
                         : prev
                 );
 
-                if (newTotal === 20 || newTotal === 50 || newTotal === 100 || newTotal === 200 || newTotal === 500) {
-                    checkBadges(newTotal);
+                checkBadges(baseTotal, newTotal);
+
+                // This request's value is now confirmed in profile state —
+                // clear the pending marker if nothing newer has queued behind it.
+                if (pendingCountsRef.current?.total === newTotal) {
+                    pendingCountsRef.current = null;
                 }
             }
+        } else {
+            // No profile / Supabase down: pending marker stays so the next
+            // local-only increment still chains correctly instead of
+            // re-reading stale localStorage each time.
         }
     }, [user, profile, dailyResetAt, localDailyCount, localTotalCount, supabaseFailed, checkBadges]);
 
@@ -364,6 +454,14 @@ export function useSubscription() {
                 throw error;
             }
 
+            // NOTE (issue #4): a non-error response from functions.invoke only
+            // confirms the HTTP call was accepted — not that the webhook's DB
+            // write committed. Previously we set local state to 'active'
+            // immediately and never checked back, so a refresh could revert
+            // the UI if the DB write actually failed or was still processing.
+            // Now we optimistically show 'active' for responsiveness, but
+            // re-fetch the real row shortly after and reconcile — including
+            // rolling back the optimistic state if the DB still disagrees.
             setProfile((prev) =>
                 prev
                     ? {
@@ -374,6 +472,33 @@ export function useSubscription() {
                     }
                     : prev
             );
+
+            const reconcile = async (attempt: number) => {
+                const { data, error: fetchError } = await supabase
+                    .from('user_profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (fetchError || !data) return;
+
+                if (data.subscription_status === 'active') {
+                    setProfile(data as UserProfile);
+                    return;
+                }
+
+                if (attempt < 3) {
+                    setTimeout(() => reconcile(attempt + 1), 2000 * (attempt + 1));
+                } else {
+                    // Webhook never confirmed after retries — trust the DB,
+                    // not the optimistic guess, so the UI doesn't lie about
+                    // payment status.
+                    console.error('[useSubscription] Subscription activation not confirmed by server after retries');
+                    setProfile(data as UserProfile);
+                }
+            };
+
+            setTimeout(() => reconcile(0), 1500);
         },
         [user]
     );
