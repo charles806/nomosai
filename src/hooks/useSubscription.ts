@@ -27,7 +27,7 @@ export interface Badge {
 
 const DAILY_MESSAGE_LIMIT = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const BADGE_THRESHOLDS = [20, 50, 100, 200, 500];
+const BADGE_THRESHOLDS = [5, 10, 20, 50, 100, 200, 500];
 
 const LOCAL_DAILY_COUNT_KEY = 'nomos_daily_msg_count';
 const LOCAL_DAILY_RESET_KEY = 'nomos_daily_reset_at';
