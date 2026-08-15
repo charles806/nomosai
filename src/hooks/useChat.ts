@@ -79,12 +79,12 @@ export function useChat() {
   const waitForRateLimit = async () => {
     const now = Date.now();
     const timeSinceLastRequest = now - lastRequestTime.current;
-    
+
     if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
       const waitTime = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
-    
+
     lastRequestTime.current = Date.now();
   };
 
@@ -96,22 +96,22 @@ export function useChat() {
       try {
         return await fn();
       } catch (error) {
-        const is429Error = error instanceof Error && 
+        const is429Error = error instanceof Error &&
           (error.message.includes('429') || error.message.includes('Too Many Requests'));
-        
+
         const isLastAttempt = attempt === maxRetries - 1;
-        
+
         if (!is429Error || isLastAttempt) {
           throw error;
         }
-        
+
         const backoffTime = Math.pow(2, attempt + 1) * 1000;
-        
+
         setState(prev => ({
           ...prev,
           error: `Rate limited. Retrying in ${backoffTime / 1000} seconds...`
         }));
-        
+
         await new Promise(resolve => setTimeout(resolve, backoffTime));
       }
     }
@@ -173,23 +173,69 @@ export function useChat() {
         text: m.content
       })) || [];
 
-      const response = await retryWithBackoff(async () => {
-        return await geminiService.generateResponse(userMessage.content, history, attachments);
-      });
-
+      // Create the assistant message up front with empty content, and push
+      // it immediately so isLoading can drop as soon as the first chunk
+      // arrives rather than waiting for the whole response.
+      const assistantMessageId = crypto.randomUUID();
       const assistantMessage: Message = {
-        id: crypto.randomUUID(),
+        id: assistantMessageId,
         type: 'assistant',
-        content: response,
+        content: '',
         timestamp: new Date()
       };
 
       setState(prev => {
         const conversations = prev.conversations.map(conv =>
           conv.id === conversationId
+            ? { ...conv, messages: [...conv.messages, assistantMessage], updatedAt: new Date() }
+            : conv
+        );
+        return { ...prev, conversations };
+      });
+
+      let firstChunkReceived = false;
+
+      const onChunk = (chunkText: string) => {
+        if (!firstChunkReceived) {
+          firstChunkReceived = true;
+          // Drop the loading indicator the moment real text starts arriving,
+          // instead of waiting for the full response to finish.
+          setState(prev => ({ ...prev, isLoading: false }));
+        }
+
+        setState(prev => {
+          const conversations = prev.conversations.map(conv =>
+            conv.id === conversationId
+              ? {
+                  ...conv,
+                  messages: conv.messages.map(m =>
+                    m.id === assistantMessageId
+                      ? { ...m, content: m.content + chunkText }
+                      : m
+                  ),
+                  updatedAt: new Date()
+                }
+              : conv
+          );
+          return { ...prev, conversations };
+        });
+      };
+
+      const finalText = await retryWithBackoff(async () => {
+        return await geminiService.generateResponseStream(userMessage.content, history, attachments, onChunk);
+      });
+
+      // Reconcile: ensure the final stored content exactly matches what the
+      // service returned (guards against any dropped/out-of-order chunk),
+      // and persist to localStorage now that the message is complete.
+      setState(prev => {
+        const conversations = prev.conversations.map(conv =>
+          conv.id === conversationId
             ? {
                 ...conv,
-                messages: [...conv.messages, assistantMessage],
+                messages: conv.messages.map(m =>
+                  m.id === assistantMessageId ? { ...m, content: finalText } : m
+                ),
                 updatedAt: new Date()
               }
             : conv
