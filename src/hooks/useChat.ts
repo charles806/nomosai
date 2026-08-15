@@ -173,9 +173,11 @@ export function useChat() {
         text: m.content
       })) || [];
 
-      // Create the assistant message up front with empty content, and push
-      // it immediately so isLoading can drop as soon as the first chunk
-      // arrives rather than waiting for the whole response.
+      // Create the assistant message up front with empty content and push it
+      // in the SAME setState call that flips isLoading to false. Previously
+      // isLoading only dropped on the first streamed chunk, leaving a window
+      // where both the separate loading-indicator avatar AND this message's
+      // own avatar were rendered at once — that was the double-avatar bug.
       const assistantMessageId = crypto.randomUUID();
       const assistantMessage: Message = {
         id: assistantMessageId,
@@ -190,19 +192,10 @@ export function useChat() {
             ? { ...conv, messages: [...conv.messages, assistantMessage], updatedAt: new Date() }
             : conv
         );
-        return { ...prev, conversations };
+        return { ...prev, conversations, isLoading: false };
       });
 
-      let firstChunkReceived = false;
-
       const onChunk = (chunkText: string) => {
-        if (!firstChunkReceived) {
-          firstChunkReceived = true;
-          // Drop the loading indicator the moment real text starts arriving,
-          // instead of waiting for the full response to finish.
-          setState(prev => ({ ...prev, isLoading: false }));
-        }
-
         setState(prev => {
           const conversations = prev.conversations.map(conv =>
             conv.id === conversationId
