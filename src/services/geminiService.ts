@@ -306,19 +306,22 @@ export class GeminiService {
     if (!accessToken) {
       throw new Error('Not authenticated');
     }
-
-    // Supabase project URL is needed to hit the function's raw HTTP endpoint
-    // directly (bypassing functions.invoke, which can't stream). Reuses the
-    // same client config already set up in supabaseClient.ts.
-    const functionsUrl = (supabase as any).functionsUrl
-      ?? `${(supabase as any).supabaseUrl}/functions/v1`;
+// Supabase project URL is needed to hit the function's raw HTTP endpoint
+    // directly (bypassing functions.invoke, which can't stream). Previously
+    // read from (supabase as any).functionsUrl / .supabaseUrl — those are
+    // private, undocumented SDK internals that can be undefined depending on
+    // SDK version, which silently broke this fetch (bad URL), threw, and
+    // triggered the non-streaming fallback on every single message — hence
+    // both endpoints firing every time. Using the same env var that builds
+    // the client elsewhere is the correct, stable source.
+    const functionsUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
     const response = await fetch(`${functionsUrl}/ai-gateway`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
-        apikey: (supabase as any).supabaseKey ?? '',
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({ systemPrompt, parts }),
     });
