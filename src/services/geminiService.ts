@@ -267,10 +267,17 @@ export class GeminiService {
     return parts;
   }
 
+  // Non-streaming path — used by generateResponse() and as the fallback if
+  // the streaming fetch itself fails to even connect (e.g. network down
+  // before any bytes arrive). Still goes through supabase.functions.invoke,
+  // which is fine here since we're not trying to stream this path.
   private async callGateway(parts: GeminiPart[]): Promise<{ text: string; provider: string }> {
     const systemPrompt = this.userPreferences.mode === 'companion' ? COMPANION_SYSTEM_PROMPT : PROFESSIONAL_SYSTEM_PROMPT;
 
-    const { data, error } = await supabase.functions.invoke('ai-gateway', {
+    // supabase.functions.invoke buffers the full response before resolving —
+    // it cannot be used for real token-by-token streaming, only for the
+    // one-shot fallback path.
+    const { data, error } = await supabase.functions.invoke('ai-gateway-json', {
       body: { systemPrompt, parts },
     });
 
@@ -285,12 +292,100 @@ export class GeminiService {
     return { text: data.text, provider: data.provider };
   }
 
-  // Streaming-style response: the gateway itself is not SSE, so we fetch the
-  // full answer once and then feed it to onChunk progressively for the same
-  // typing UX the UI already expects.
+  // Real streaming path: raw fetch against the Edge Function's SSE endpoint,
+  // reading the ReadableStream directly so text chunks reach onChunk as soon
+  // as Gemini/DeepSeek produce them — not after the full response completes.
+  private async streamGateway(
+    parts: GeminiPart[],
+    onChunk: (text: string) => void
+  ): Promise<{ text: string; provider: string }> {
+    const systemPrompt = this.userPreferences.mode === 'companion' ? COMPANION_SYSTEM_PROMPT : PROFESSIONAL_SYSTEM_PROMPT;
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    if (!accessToken) {
+      throw new Error('Not authenticated');
+    }
+
+    // Supabase project URL is needed to hit the function's raw HTTP endpoint
+    // directly (bypassing functions.invoke, which can't stream). Reuses the
+    // same client config already set up in supabaseClient.ts.
+    const functionsUrl = (supabase as any).functionsUrl
+      ?? `${(supabase as any).supabaseUrl}/functions/v1`;
+
+    const response = await fetch(`${functionsUrl}/ai-gateway`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        apikey: (supabase as any).supabaseKey ?? '',
+      },
+      body: JSON.stringify({ systemPrompt, parts }),
+    });
+
+    if (!response.ok || !response.body) {
+      const errText = await response.text().catch(() => '');
+      throw new Error(`Gateway request failed (${response.status}): ${errText.slice(0, 200)}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullText = '';
+    let provider = 'gemini';
+    let sawError: string | null = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split('\n\n');
+      buffer = events.pop() || ''; // keep last partial event for next read
+
+      for (const rawEvent of events) {
+        const lines = rawEvent.split('\n');
+        let eventType = 'message';
+        let dataLine = '';
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) eventType = line.slice(6).trim();
+          if (line.startsWith('data:')) dataLine = line.slice(5).trim();
+        }
+
+        if (!dataLine) continue;
+
+        try {
+          const parsed = JSON.parse(dataLine);
+
+          if (eventType === 'provider') {
+            provider = parsed.provider;
+          } else if (eventType === 'error') {
+            sawError = parsed.error || 'Unknown gateway error';
+          } else if (eventType === 'done') {
+            // no-op, loop will end when stream closes
+          } else if (parsed.text) {
+            fullText += parsed.text;
+            onChunk(parsed.text);
+          }
+        } catch {
+          // Skip a malformed/partial SSE data line rather than crashing the
+          // whole stream over one bad chunk.
+        }
+      }
+    }
+
+    if (sawError) throw new Error(sawError);
+    if (!fullText) throw new Error('Gateway returned an empty stream');
+
+    return { text: fullText, provider };
+  }
+
+  // Real streaming: chunks reach onChunk as they arrive from the model, not
+  // after the full response is already sitting in memory.
   public async generateResponseStream(
     userMessage: string,
-    history: any[] = [],
+    _history: any[] = [],
     attachments?: FileAttachment[],
     onChunk?: (text: string) => void
   ): Promise<string> {
@@ -303,22 +398,24 @@ export class GeminiService {
     const parts = this.buildParts(userMessage, attachments);
 
     try {
-      const { text: fullText } = await this.callGateway(parts);
-
-      if (onChunk) {
-        const words = fullText.split(' ');
+      const { text: fullText } = await this.streamGateway(parts, onChunk ?? (() => {}));
+      this.conversationHistory.push({ role: 'assistant', content: fullText });
+      return fullText;
+    } catch (error: any) {
+      console.error("❌ Streaming gateway error, falling back to non-streaming:", error);
+      // Fall back to the one-shot path (and simulate typing so the UI still
+      // feels responsive) only if the stream itself failed — e.g. auth
+      // issue, network drop, or the SSE endpoint being unavailable.
+      const fallbackText = await this.generateResponse(userMessage, _history, attachments);
+      if (onChunk && fallbackText) {
+        const words = fallbackText.split(' ');
         for (let i = 0; i < words.length; i++) {
           onChunk(i === 0 ? words[i] : ' ' + words[i]);
           // eslint-disable-next-line no-await-in-loop
           await new Promise(resolve => setTimeout(resolve, 12));
         }
       }
-
-      this.conversationHistory.push({ role: 'assistant', content: fullText });
-      return fullText;
-    } catch (error: any) {
-      console.error("❌ Gateway Error:", error);
-      return this.generateResponse(userMessage, history, attachments);
+      return fallbackText;
     }
   }
 
