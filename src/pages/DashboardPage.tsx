@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Scale } from 'lucide-react';
 import { ChatSidebar } from '../components/ChatSidebar';
 import { ChatMessages } from '../components/ChatMessages';
 import { ChatInput } from '../components/ChatInput';
@@ -50,8 +49,18 @@ export default function DashboardPage() {
             return;
         }
 
+        // Server-side check happens first and is the actual gate — canSendMessage
+        // above is just a fast client-side pre-check to avoid an unnecessary
+        // round-trip when we already know the user is at their limit. The RPC's
+        // `allowed` result is what's trusted; if it says no, we stop here and
+        // never call sendMessage, so no AI call and no quota is spent.
+        const allowed = await incrementMessageCount();
+        if (!allowed) {
+            setShowUpgrade(true);
+            return;
+        }
+
         sendMessage(message, attachments);
-        await incrementMessageCount();
 
         if (isFreeTrial && freeTrialRemaining <= 1) {
             setShowUpgrade(true);
@@ -119,8 +128,12 @@ export default function DashboardPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
                             </button>
-                            <div className="p-1.5 sm:p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex-shrink-0">
-                                <Scale className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg overflow-hidden flex-shrink-0 bg-gray-800">
+                                <img
+                                    src="/logo.png"
+                                    alt="NOMOS AI"
+                                    className="w-full h-full object-cover"
+                                />
                             </div>
                             <div className="min-w-0">
                                 <h1 className="text-base sm:text-lg font-bold text-white truncate">NOMOS AI</h1>
