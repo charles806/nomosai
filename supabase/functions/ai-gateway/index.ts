@@ -1,23 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// CORS headers for browser requests
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-// Keys are read from Supabase Edge Function secrets (set with `supabase secrets set`).
-// They never touch the client bundle or Vercel env — that's the whole point of this function.
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || '';
 const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY') || '';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent';
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
-// deepseek-chat / deepseek-reasoner were retired July 2026 — use these IDs now.
-// V4-Flash is the cheap/fast tier; swap to 'deepseek-v4-pro' for higher quality
-// once the free 5M-token grant is used up and cost becomes a factor either way.
 const DEEPSEEK_MODEL = 'deepseek-v4-flash';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
@@ -67,8 +61,6 @@ async function callGemini(systemPrompt: string, parts: GeminiPart[]): Promise<st
 async function callDeepSeek(systemPrompt: string, parts: GeminiPart[]): Promise<string> {
   if (!DEEPSEEK_API_KEY) throw new Error('DeepSeek key not configured');
 
-  // DeepSeek's API is text-only — no vision support — so like the original
-  // Groq fallback, we collapse to text and flag any dropped attachments.
   const textContent = parts.filter(p => p.text).map(p => p.text).join('\n\n');
   const hadAttachments = parts.some(p => p.inline_data);
   const userContent = hadAttachments
@@ -92,9 +84,6 @@ async function callDeepSeek(systemPrompt: string, parts: GeminiPart[]): Promise<
     }),
   });
 
-  // Read as text first and parse defensively — a gateway returning an "ok"
-  // status with a non-JSON body should surface a clear error instead of
-  // throwing an unhandled parse exception.
   const rawText = await response.text();
   let data: any;
   try {
@@ -125,8 +114,6 @@ serve(async (req: Request) => {
     });
   }
 
-  // Require a logged-in Supabase user — this endpoint holds paid API keys,
-  // so it should never be reachable anonymously.
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
     return new Response(JSON.stringify({ error: 'Missing authorization' }), {
@@ -165,7 +152,7 @@ serve(async (req: Request) => {
     });
   }
 
-  // Primary: Gemini. Fallback: OpenRouter. Any Gemini failure (quota, outage, bad key) triggers fallback.
+  // Primary: Gemini. Fallback: DeepSeek. Any Gemini failure (quota, outage, bad key) triggers fallback.
   try {
     const text = await callGemini(systemPrompt, parts);
     return new Response(JSON.stringify({ text, provider: 'gemini' }), {
