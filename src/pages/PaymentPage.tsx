@@ -6,8 +6,8 @@ import { useSubscription } from '../hooks/useSubscription';
 import { initializePaystack, generateReference } from '../services/paystackService';
 
 const planDetails: Record<string, { name: string; monthly: number; yearly: number }> = {
-    basic: { name: 'Basic', monthly: 2000, yearly: 20000 },
-    essential: { name: 'Essential', monthly: 15000, yearly: 150000 },
+    basic: { name: 'Basic', monthly: 1200, yearly: 12000 },
+    essential: { name: 'Essential', monthly: 5000, yearly: 50000 },
     enterprise: { name: 'Enterprise', monthly: 30000, yearly: 300000 },
 };
 
