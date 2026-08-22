@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ChatSidebar } from '../components/ChatSidebar';
 import { ChatMessages } from '../components/ChatMessages';
 import { ChatInput } from '../components/ChatInput';
@@ -6,6 +6,7 @@ import { ErrorMessage } from '../components/ErrorMessage';
 import { MobileMenu } from '../components/MobileMenu';
 import { SettingsModal } from '../components/SettingsModal';
 import { UpgradeModal } from '../components/UpgradeModal';
+import { PaymentNudge } from '../components/PaymentNudge';
 import { BadgeNotification } from '../components/BadgeNotification';
 import { useChat } from '../hooks/useChat';
 import { useAuth } from '../contexts/AuthContext';
@@ -42,6 +43,13 @@ export default function DashboardPage() {
     const geminiService = GeminiService.getInstance();
 
     const [showUpgrade, setShowUpgrade] = useState(false);
+    const [showNudge, setShowNudge] = useState(false);
+    // Session-scoped counter — deliberately not persisted, this just needs
+    // to fire the nudge every N sends within the current visit, not track
+    // a running total across days/devices (that's what daily_message_count
+    // in the DB is for).
+    const sentCountRef = useRef(0);
+    const NUDGE_EVERY_N_MESSAGES = 3;
 
     const handleSendMessage = async (message: string, attachments?: any) => {
         if (!canSendMessage) {
@@ -64,6 +72,16 @@ export default function DashboardPage() {
 
         if (isFreeTrial && freeTrialRemaining <= 1) {
             setShowUpgrade(true);
+        }
+
+        // Soft, dismissible nudge every 3rd message — separate from the
+        // hard block above, which only fires once the daily limit is
+        // actually reached. Paid users never see this.
+        if (isFreeTrial) {
+            sentCountRef.current += 1;
+            if (sentCountRef.current % NUDGE_EVERY_N_MESSAGES === 0) {
+                setShowNudge(true);
+            }
         }
     };
 
@@ -168,6 +186,9 @@ export default function DashboardPage() {
                     isLoading={isLoading}
                     onPromptSelect={(prompt) => handleSendMessage(prompt)}
                 />
+
+                {/* Payment nudge — sits just above the composer, dismissible */}
+                <PaymentNudge isOpen={showNudge} onDismiss={() => setShowNudge(false)} />
 
                 {/* Input */}
                 <ChatInput
