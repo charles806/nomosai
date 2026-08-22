@@ -74,14 +74,11 @@ export default function DashboardPage() {
             setShowUpgrade(true);
         }
 
-        // Soft, dismissible nudge every 3rd message — separate from the
-        // hard block above, which only fires once the daily limit is
-        // actually reached. Paid users never see this.
-        if (isFreeTrial) {
-            sentCountRef.current += 1;
-            if (sentCountRef.current % NUDGE_EVERY_N_MESSAGES === 0) {
-                setShowNudge(true);
-            }
+        // Soft, dismissible nudge every 3rd message — purely client-side
+        // awareness, no subscription status involved.
+        sentCountRef.current += 1;
+        if (sentCountRef.current % NUDGE_EVERY_N_MESSAGES === 0) {
+            setShowNudge(true);
         }
     };
 
