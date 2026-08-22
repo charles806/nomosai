@@ -29,8 +29,8 @@ const plans = [
         id: 'basic',
         mark: '§ 01',
         name: 'Basic',
-        monthlyPrice: 2000,
-        yearlyPrice: 20000,
+        monthlyPrice: 1200,
+        yearlyPrice: 12000,
         yearlySavings: 4000,
         features: [
             'Up to 50 AI queries per month',
@@ -43,8 +43,8 @@ const plans = [
         id: 'essential',
         mark: '§ 02',
         name: 'Essential',
-        monthlyPrice: 15000,
-        yearlyPrice: 150000,
+        monthlyPrice: 5000,
+        yearlyPrice: 50000,
         yearlySavings: 30000,
         popular: true,
         features: [
